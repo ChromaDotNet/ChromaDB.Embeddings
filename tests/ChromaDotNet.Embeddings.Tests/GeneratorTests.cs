@@ -21,6 +21,33 @@ public class GeneratorTests
 		});
 	}
 
+	// The environment of ONNX Runtime logs errors only: on Linux without a GPU the warning that the discovery of the GPU devices failed
+	// would show at every start.
+	[Test]
+	public async Task OnnxRuntimeLogsErrorsOnly()
+	{
+		await SharedGenerator.GetAsync();
+		Assert.That(Microsoft.ML.OnnxRuntime.OrtEnv.Instance().EnvLogLevel, Is.EqualTo(Microsoft.ML.OnnxRuntime.OrtLoggingLevel.ORT_LOGGING_LEVEL_ERROR));
+	}
+
+	// Another part of the application creates the environment between the check and the creation: CreateInstanceWithOptions throws, as
+	// it does here where the environment exists, and the environment stays. Without an environment, the failure goes on.
+	[Test]
+	public async Task OnnxEnvironmentCreatedMeanwhileStays()
+	{
+		await SharedGenerator.GetAsync();
+		var checks = 0;
+		Assert.DoesNotThrow(() => OnnxEnvironment.EnsureCreated(() => checks++ > 0, CreateAgain));
+		Assert.That(checks, Is.EqualTo(2));
+		Assert.Throws<Microsoft.ML.OnnxRuntime.OnnxRuntimeException>(() => OnnxEnvironment.EnsureCreated(() => false, CreateAgain));
+
+		static void CreateAgain()
+		{
+			var options = new Microsoft.ML.OnnxRuntime.EnvironmentCreationOptions();
+			Microsoft.ML.OnnxRuntime.OrtEnv.CreateInstanceWithOptions(ref options);
+		}
+	}
+
 	[Test]
 	public async Task GetServiceGivesTheGeneratorAndNothingElse()
 	{

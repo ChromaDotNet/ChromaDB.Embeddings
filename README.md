@@ -133,6 +133,8 @@ The constants of `ChromaDefaultEmbeddingGenerator` are those of Python for a col
 
 The computation runs on the CPU, in the calling thread.
 Concurrent calls run one after the other.
+ONNX Runtime logs errors only, so Linux without a GPU does not warn at every start that the discovery of the GPU devices failed.
+An application that creates `OrtEnv` before keeps its own level.
 
 ## Built on
 
