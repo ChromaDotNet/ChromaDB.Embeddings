@@ -34,7 +34,7 @@ Include the version of the package, the operating system, and the steps to repro
   [NuGet trusted publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing): no NuGet API key is kept by a person or
   in the repository.
 - The organization requires two-factor authentication.
-- The workflows pin their actions to commit hashes. Dependabot checks the dependencies.
+- The workflows pin their actions to commit hashes, and the Python reference its packages to their hashes. Dependabot and CodeQL check the dependencies and the code.
 
 ## Verifying a release
 

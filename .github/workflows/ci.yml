@@ -109,7 +109,7 @@ jobs:
       - name: chromadb 1.5.9
         run: |
           python3 -m venv artifacts/venv
-          artifacts/venv/bin/python -m pip install --quiet chromadb==1.5.9
+          artifacts/venv/bin/python -m pip install --quiet --require-hashes -r build/python-reference-requirements.txt
       - name: The vectors of Python are those of the tests
         run: |
           mkdir -p artifacts/python-model
