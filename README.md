@@ -117,7 +117,7 @@ It does what `ONNXMiniLM_L6_V2` of chromadb 1.5.9 does:
 The tests compare 135 texts with Python: empty texts, accents, emoji, CJK and other scripts, symbols, control characters, texts of
 254 to 1000 tokens, and short documents.
 The token ids are the same for all of them.
-The largest difference of a component is 1.9e-7.
+The largest difference of a component is 1.9e-7 on x64 and 2.4e-7 on arm64.
 The five nearest neighbours of each text are the same.
 The reference of Python is in `tests/ChromaDotNet.Embeddings.Tests/TestData`.
 
