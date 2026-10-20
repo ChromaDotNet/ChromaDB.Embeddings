@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net8.0</TargetFramework>
+		<!-- dotnet publish -r win-x64 -p:BenchAot=true: PublishAot here, not as a global property, which would reach the net462 build
+		     of the library too. -->
+		<PublishAot Condition="'$(BenchAot)' == 'true'">true</PublishAot>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\ChromaDotNet.Embeddings\ChromaDotNet.Embeddings.csproj" />
+		<None Include="..\ChromaDotNet.Embeddings.Tests\TestData\corpus.json" Link="corpus.json" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\ChromaDotNet.Embeddings.Tests\TestData\python.json" Link="python.json" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+</Project>

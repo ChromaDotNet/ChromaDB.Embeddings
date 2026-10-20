@@ -1,0 +1,23 @@
+#nullable enable
+ChromaDotNet.Embeddings.ChromaDefaultEmbeddingGenerator
+ChromaDotNet.Embeddings.ChromaDefaultEmbeddingGenerator.Dispose() -> void
+ChromaDotNet.Embeddings.ChromaDefaultEmbeddingGenerator.GenerateAsync(System.Collections.Generic.IEnumerable<string!>! values, Microsoft.Extensions.AI.EmbeddingGenerationOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Microsoft.Extensions.AI.GeneratedEmbeddings<Microsoft.Extensions.AI.Embedding<float>!>!>!
+ChromaDotNet.Embeddings.ChromaDefaultEmbeddingGenerator.GetService(System.Type! serviceType, object? serviceKey = null) -> object?
+ChromaDotNet.Embeddings.ChromaDefaultEmbeddingOptions
+ChromaDotNet.Embeddings.ChromaDefaultEmbeddingOptions.CacheDirectory.get -> string?
+ChromaDotNet.Embeddings.ChromaDefaultEmbeddingOptions.CacheDirectory.set -> void
+ChromaDotNet.Embeddings.ChromaDefaultEmbeddingOptions.ChromaDefaultEmbeddingOptions() -> void
+ChromaDotNet.Embeddings.ChromaDefaultEmbeddingOptions.DownloadUri.get -> System.Uri?
+ChromaDotNet.Embeddings.ChromaDefaultEmbeddingOptions.DownloadUri.set -> void
+ChromaDotNet.Embeddings.ChromaDefaultEmbeddingOptions.IntraOpNumThreads.get -> int?
+ChromaDotNet.Embeddings.ChromaDefaultEmbeddingOptions.IntraOpNumThreads.set -> void
+ChromaDotNet.Embeddings.ChromaDefaultEmbeddingOptions.Logger.get -> Microsoft.Extensions.Logging.ILogger?
+ChromaDotNet.Embeddings.ChromaDefaultEmbeddingOptions.Logger.set -> void
+ChromaDotNet.Embeddings.ChromaDefaultEmbeddingOptions.ModelDirectory.get -> string?
+ChromaDotNet.Embeddings.ChromaDefaultEmbeddingOptions.ModelDirectory.set -> void
+const ChromaDotNet.Embeddings.ChromaDefaultEmbeddingGenerator.DefaultSpace = "l2" -> string!
+const ChromaDotNet.Embeddings.ChromaDefaultEmbeddingGenerator.Dimensions = 384 -> int
+const ChromaDotNet.Embeddings.ChromaDefaultEmbeddingGenerator.EmbeddingFunctionName = "default" -> string!
+const ChromaDotNet.Embeddings.ChromaDefaultEmbeddingGenerator.MaxTokens = 256 -> int
+const ChromaDotNet.Embeddings.ChromaDefaultEmbeddingGenerator.ModelId = "all-MiniLM-L6-v2" -> string!
+static ChromaDotNet.Embeddings.ChromaDefaultEmbeddingGenerator.CreateAsync(ChromaDotNet.Embeddings.ChromaDefaultEmbeddingOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<ChromaDotNet.Embeddings.ChromaDefaultEmbeddingGenerator!>!

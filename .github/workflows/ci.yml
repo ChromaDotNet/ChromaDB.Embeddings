@@ -1,0 +1,172 @@
+# Packs, and runs the tests on each platform: .NET 8 on Windows, Linux x64 and arm64, and macOS arm64, and .NET Framework 4.8 on
+# Windows, with the model archive downloaded from the address of the Python client and kept in the cache of the CI. The reference of
+# Python computes the vectors of the test texts again with chromadb and compares them with the files of the tests. A version tag, like
+# v1.0.0-preview.1, also publishes: the GitHub release with the packages and their build provenance, then the packages on NuGet, with
+# trusted publishing, in the environment nuget.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+
+env:
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+  # The SHA-256 hash of onnx.tar.gz, as in the library and in build/fetch-model.sh: the key of the cache of the model.
+  MODEL_SHA256: 913d7300ceae3b2dbc2c50d1de4baacab4be7b9380491c27fab7418616a16ec3
+
+jobs:
+  pack:
+    name: Pack
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+      - name: The tag is the version of the package, a preview
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          version=$(dotnet msbuild src/ChromaDotNet.Embeddings -getProperty:Version -nologo)
+          echo "tag $GITHUB_REF_NAME, version $version"
+          test "$GITHUB_REF_NAME" = "v$version"
+          case "$version" in *-preview*) ;; *) echo "only previews for now" >&2; exit 1 ;; esac
+      - name: Pack
+        run: dotnet pack src/ChromaDotNet.Embeddings -c Release
+      - name: The packages link their repository and have both targets
+        run: python3 build/check-nuspecs.py artifacts/packages
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: packages
+          path: artifacts/packages
+
+  test:
+    name: Tests ${{ matrix.framework }} on ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            framework: net8.0
+          - runner: ubuntu-24.04
+            framework: net8.0
+          - runner: ubuntu-24.04-arm
+            framework: net8.0
+          - runner: macos-latest
+            framework: net8.0
+          - runner: windows-latest
+            framework: net48
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Runner
+        run: |
+          uname -a
+          dotnet --info | grep -E "RID|OS Name|OS Version|Architecture" | sort -u
+      - name: Cache of the model archive
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: artifacts/model
+          key: model-${{ env.MODEL_SHA256 }}
+      - name: The model archive, from the address of the Python client
+        run: bash build/fetch-model.sh
+      - name: Tests
+        run: dotnet test tests/ChromaDotNet.Embeddings.Tests -c Release -f ${{ matrix.framework }} --logger "console;verbosity=normal"
+
+  python-reference:
+    name: Reference of Python
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Cache of the model archive
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: artifacts/model
+          key: model-${{ env.MODEL_SHA256 }}
+      - name: The model archive, from the address of the Python client
+        run: bash build/fetch-model.sh
+      - name: chromadb 1.5.9
+        run: |
+          python3 -m venv artifacts/venv
+          artifacts/venv/bin/python -m pip install --quiet chromadb==1.5.9
+      - name: The vectors of Python are those of the tests
+        run: |
+          mkdir -p artifacts/python-model
+          cp artifacts/model/onnx.tar.gz artifacts/python-model/
+          artifacts/venv/bin/python -I build/python-reference.py artifacts/python-model
+
+  publish:
+    name: Publish the preview
+    needs: [pack, test, python-reference]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: nuget
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: packages
+          path: packages
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            packages/*.nupkg
+            packages/*.snupkg
+
+      - name: Collect the provenance
+        run: |
+          for file in packages/*.nupkg packages/*.snupkg; do
+            gh attestation verify "$file" --repo "$GITHUB_REPOSITORY" --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/ci.yml" \
+              --source-ref "refs/tags/$TAG" --format json --jq '.[].attestation.bundle' >> bundles.jsonl
+          done
+          sort -u bundles.jsonl > "packages/provenance-$TAG.intoto.jsonl"
+
+      - name: GitHub release
+        run: |
+          version="${TAG#v}"
+          sed -e "s/VERSION/$version/g" build/release-notes.md > notes.md
+          gh release create "$TAG" packages/* --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease \
+            --title "ChromaDotNet.Embeddings $version" --notes-file notes.md
+
+      - name: NuGet login
+        id: login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1
+        with:
+          user: ${{ vars.NUGET_USER || 'Laurianti' }}
+
+      - name: Publish to NuGet.org
+        run: dotnet nuget push 'packages/*.nupkg' --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

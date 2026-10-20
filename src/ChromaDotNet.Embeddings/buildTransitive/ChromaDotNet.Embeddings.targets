@@ -1,0 +1,33 @@
+<Project>
+	<!-- ChromaDotNet.Embeddings on .NET Framework. .NET Framework does not load native libraries from runtimes/<rid>/native, and the
+	     props of Microsoft.ML.OnnxRuntime that copy onnxruntime.dll reach only the projects that reference it directly. This copies the
+	     native libraries of the tokenizer and of ONNX Runtime next to the application, for x64, AnyCPU without Prefer32Bit, and ARM64.
+	     ONNX Runtime 1.24 has no win-x86 library: a 32-bit application cannot run the model. The versions are those of the
+	     dependencies of this package. All in a target, so that PlatformTarget and Prefer32Bit have their final values. -->
+	<Target Name="ChromaDotNetEmbeddingsNativeLibraries" AfterTargets="ResolveAssemblyReferences" Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
+		<PropertyGroup>
+			<_ChromaEmbeddingsPlatform>$(PlatformTarget)</_ChromaEmbeddingsPlatform>
+			<_ChromaEmbeddingsPlatform Condition="'$(_ChromaEmbeddingsPlatform)' == ''">$(Platform)</_ChromaEmbeddingsPlatform>
+			<_ChromaEmbeddingsRid Condition="'$(_ChromaEmbeddingsPlatform)' == 'x64' Or (('$(_ChromaEmbeddingsPlatform)' == 'AnyCPU' Or '$(_ChromaEmbeddingsPlatform)' == 'Any CPU' Or '$(_ChromaEmbeddingsPlatform)' == '') And '$(Prefer32Bit)' != 'true')">win-x64</_ChromaEmbeddingsRid>
+			<_ChromaEmbeddingsRid Condition="'$(_ChromaEmbeddingsPlatform)' == 'ARM64'">win-arm64</_ChromaEmbeddingsRid>
+			<!-- The global packages folder of PackageReference (lowercase id/version), or the packages folder of packages.config (Id.Version). -->
+			<_ChromaEmbeddingsTokenizer Condition="'$(NuGetPackageRoot)' != ''">$([MSBuild]::EnsureTrailingSlash('$(NuGetPackageRoot)'))tokenizers.dotnet.runtime.$(_ChromaEmbeddingsRid)\1.4.1\runtimes\$(_ChromaEmbeddingsRid)\native\hf_tokenizers.dll</_ChromaEmbeddingsTokenizer>
+			<_ChromaEmbeddingsTokenizer Condition="'$(NuGetPackageRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\Tokenizers.DotNet.runtime.$(_ChromaEmbeddingsRid).1.4.1\runtimes\$(_ChromaEmbeddingsRid)\native\hf_tokenizers.dll</_ChromaEmbeddingsTokenizer>
+			<_ChromaEmbeddingsOnnxRuntime Condition="'$(NuGetPackageRoot)' != ''">$([MSBuild]::EnsureTrailingSlash('$(NuGetPackageRoot)'))microsoft.ml.onnxruntime\1.24.4\runtimes\$(_ChromaEmbeddingsRid)\native\</_ChromaEmbeddingsOnnxRuntime>
+			<_ChromaEmbeddingsOnnxRuntime Condition="'$(NuGetPackageRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\Microsoft.ML.OnnxRuntime.1.24.4\runtimes\$(_ChromaEmbeddingsRid)\native\</_ChromaEmbeddingsOnnxRuntime>
+		</PropertyGroup>
+		<Error Condition="'$(_ChromaEmbeddingsRid)' == '' And ('$(OutputType)' == 'Exe' Or '$(OutputType)' == 'WinExe')"
+			   Text="ChromaDotNet.Embeddings on .NET Framework needs a 64-bit process: ONNX Runtime 1.24 has no win-x86 library. Set PlatformTarget to x64 or ARM64, or AnyCPU with Prefer32Bit false." />
+		<Warning Condition="'$(_ChromaEmbeddingsRid)' != '' And (!Exists('$(_ChromaEmbeddingsTokenizer)') Or !Exists('$(_ChromaEmbeddingsOnnxRuntime)onnxruntime.dll'))"
+				 Text="ChromaDotNet.Embeddings did not find hf_tokenizers.dll or onnxruntime.dll of $(_ChromaEmbeddingsRid) in the packages folder: copy them next to the application." />
+		<ItemGroup Condition="'$(_ChromaEmbeddingsRid)' != ''">
+			<_ChromaEmbeddingsNative Include="$(_ChromaEmbeddingsTokenizer)" Condition="Exists('$(_ChromaEmbeddingsTokenizer)')" />
+			<_ChromaEmbeddingsNative Include="$(_ChromaEmbeddingsOnnxRuntime)onnxruntime.dll;$(_ChromaEmbeddingsOnnxRuntime)onnxruntime_providers_shared.dll"
+									 Condition="Exists('$(_ChromaEmbeddingsOnnxRuntime)onnxruntime.dll')" />
+			<!-- Not a file that is already copied, as onnxruntime.dll by the props of Microsoft.ML.OnnxRuntime for a direct reference. -->
+			<_ChromaEmbeddingsNative Remove="@(None->WithMetadataValue('Link', 'onnxruntime.dll')->'%(FullPath)')" />
+			<_ChromaEmbeddingsNative Remove="@(None->WithMetadataValue('Link', 'onnxruntime_providers_shared.dll')->'%(FullPath)')" />
+			<ReferenceCopyLocalPaths Include="@(_ChromaEmbeddingsNative)" DestinationSubDirectory="" />
+		</ItemGroup>
+	</Target>
+</Project>

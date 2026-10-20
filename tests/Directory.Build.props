@@ -1,0 +1,16 @@
+<Project>
+	<Import Project="..\Directory.Build.props" />
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<GenerateDocumentationFile>false</GenerateDocumentationFile>
+		<!-- Where the tests and the bench put their caches and models: on the disk of the repository. -->
+		<EmbeddingsTestRoot>$(MSBuildThisFileDirectory)..\artifacts\test-tmp\</EmbeddingsTestRoot>
+		<!-- onnx.tar.gz, as Python downloads it, for the local mirror and to fill the model cache without the network: build/fetch-model.sh
+		     puts it here; CHROMADOTNET_EMBEDDINGS_ARCHIVE or -p:EmbeddingsArchive=<path> take another copy. -->
+		<EmbeddingsArchive Condition="'$(EmbeddingsArchive)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\artifacts\model\onnx.tar.gz'))</EmbeddingsArchive>
+	</PropertyGroup>
+	<ItemGroup>
+		<AssemblyMetadata Include="EmbeddingsTestRoot" Value="$([System.IO.Path]::GetFullPath('$(EmbeddingsTestRoot)'))" />
+		<AssemblyMetadata Include="EmbeddingsArchive" Value="$(EmbeddingsArchive)" />
+	</ItemGroup>
+</Project>

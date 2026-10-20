@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<!-- net48: the net462 build of the library on .NET Framework. -->
+		<TargetFrameworks>net8.0;net48</TargetFrameworks>
+		<!-- The test code uses the calls of streams and strings that .NET Framework also has. -->
+		<NoWarn>$(NoWarn);CA1835;CA1845;CA1846</NoWarn>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\ChromaDotNet.Embeddings\ChromaDotNet.Embeddings.csproj" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+		<PackageReference Include="NUnit" Version="4.1.0" />
+		<PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
+		<PackageReference Include="NUnit.Analyzers" Version="4.2.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+	<ItemGroup>
+		<!-- The texts and the reference of Python (chromadb 1.5.9), checked and written again by build/python-reference.py. -->
+		<None Include="TestData\*.json" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+	<!-- The targets the package gives an application on .NET Framework: a project reference does not get them. -->
+	<Import Project="..\..\src\ChromaDotNet.Embeddings\buildTransitive\ChromaDotNet.Embeddings.targets" />
+</Project>
