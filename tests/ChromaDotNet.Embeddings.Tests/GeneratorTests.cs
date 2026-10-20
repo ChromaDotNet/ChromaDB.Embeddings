@@ -21,6 +21,15 @@ public class GeneratorTests
 		});
 	}
 
+	// The environment of ONNX Runtime logs errors only: on Linux without a GPU the warning that the discovery of the GPU devices failed
+	// would show at every start.
+	[Test]
+	public async Task OnnxRuntimeLogsErrorsOnly()
+	{
+		await SharedGenerator.GetAsync();
+		Assert.That(Microsoft.ML.OnnxRuntime.OrtEnv.Instance().EnvLogLevel, Is.EqualTo(Microsoft.ML.OnnxRuntime.OrtLoggingLevel.ORT_LOGGING_LEVEL_ERROR));
+	}
+
 	[Test]
 	public async Task GetServiceGivesTheGeneratorAndNothingElse()
 	{

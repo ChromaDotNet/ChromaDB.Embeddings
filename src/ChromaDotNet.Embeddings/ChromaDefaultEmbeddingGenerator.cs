@@ -85,6 +85,7 @@ public sealed class ChromaDefaultEmbeddingGenerator : IEmbeddingGenerator<string
 		try
 		{
 			tokenizer = ChromaTokenizer.Load(onnx, options.Logger);
+			OnnxEnvironment.EnsureCreated();
 			model = new OnnxEmbeddingModel();
 			// One batch at a time, its operators on the threads given: faster than the parallel execution of ONNX Runtime here.
 			model.Load(Path.Combine(onnx, "model.onnx"), normalizeEmbeddings: true, useParallelExecution: false, interOpNumThreads: 1, intraOpNumThreads: threads);

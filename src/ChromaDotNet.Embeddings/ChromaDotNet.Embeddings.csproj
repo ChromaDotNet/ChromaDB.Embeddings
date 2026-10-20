@@ -6,7 +6,7 @@
 		<PackageId>ChromaDotNet.Embeddings</PackageId>
 		<RootNamespace>ChromaDotNet.Embeddings</RootNamespace>
 		<PackageDescription>The default embedding function of Chroma for .NET: all-MiniLM-L6-v2 in ONNX, with the same vectors as the Python client. An IEmbeddingGenerator of Microsoft.Extensions.AI, for ChromaDotNet.Client 2.17.0 and later. The model is downloaded at the first start into the cache folder of Python, and checked with its SHA-256. On .NET 8 and later it runs through ElBruno.LocalEmbeddings by Bruno Capuano; on .NET Framework (Windows, 64-bit) on ONNX Runtime. Tokenizer: Hugging Face, through Tokenizers.DotNet. Intel Macs and 32-bit processes are not supported. Community project, not affiliated with Chroma.</PackageDescription>
-		<PackageReleaseNotes>1.0.0-preview.1: the first preview, for .NET 8 and later and for .NET Framework 4.6.2 and later. All the releases: $(PackageProjectUrl)/releases.</PackageReleaseNotes>
+		<PackageReleaseNotes>1.0.0-preview.2: ONNX Runtime logs errors only, so Linux without a GPU no longer warns at every start that the discovery of the GPU devices failed. The vectors do not change. All the releases: $(PackageProjectUrl)/releases.</PackageReleaseNotes>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
