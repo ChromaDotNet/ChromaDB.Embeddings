@@ -9,14 +9,29 @@ internal static class OnnxEnvironment
 {
 	private static readonly object Gate = new();
 
-	internal static void EnsureCreated()
+	internal static void EnsureCreated() => EnsureCreated(() => OrtEnv.IsCreated, CreateAtErrorLevel);
+
+	// The check and the creation as functions, so that a test can create the environment between them, as another part of the application
+	// can: CreateInstanceWithOptions then throws, and the environment that exists stays, with its level. Any other failure goes on.
+	internal static void EnsureCreated(Func<bool> isCreated, Action create)
 	{
 		lock (Gate)
 		{
-			if (OrtEnv.IsCreated)
+			if (isCreated())
 				return;
-			var options = new EnvironmentCreationOptions { logLevel = OrtLoggingLevel.ORT_LOGGING_LEVEL_ERROR };
-			OrtEnv.CreateInstanceWithOptions(ref options);
+			try
+			{
+				create();
+			}
+			catch (OnnxRuntimeException) when (isCreated())
+			{
+			}
 		}
+	}
+
+	private static void CreateAtErrorLevel()
+	{
+		var options = new EnvironmentCreationOptions { logLevel = OrtLoggingLevel.ORT_LOGGING_LEVEL_ERROR };
+		OrtEnv.CreateInstanceWithOptions(ref options);
 	}
 }
