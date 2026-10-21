@@ -36,6 +36,8 @@ await fruits.AddAsync(["apple", "lemon", "banana"], documents: ["A crunchy apple
 var results = await fruits.QueryAsync("something sour", nResults: 2, include: ChromaQueryInclude.Documents | ChromaQueryInclude.Distances);
 ```
 
+Try it in your browser: [SearchByText](https://github.com/ChromaDotNet/ChromaDB.Local/tree/main/samples/SearchByText) stores and searches texts with this package and ChromaDotNet.Client, on a Chroma started by ChromaDotNet.Local. [Open it in a Codespace](https://codespaces.new/ChromaDotNet/ChromaDB.Local?quickstart=1).
+
 ## Without the client
 
 ```csharp
@@ -69,7 +71,8 @@ ONNX Runtime has no win-x86 library from version 1.23 on.
 
 On .NET Framework, set PlatformTarget to x64 or ARM64, or keep AnyCPU without Prefer32Bit.
 An AnyCPU application runs as a 64-bit process on 64-bit Windows.
-The build of a 32-bit application fails with a message that says so.
+The build of a 32-bit application fails with a message that says so, on .NET Framework and on .NET 8 and later.
+In a 32-bit process, `CreateAsync` throws a `PlatformNotSupportedException` before any download.
 .NET Framework does not load native libraries from `runtimes/`.
 So the package copies `hf_tokenizers.dll` and `onnxruntime.dll` next to the application at the build.
 
@@ -119,7 +122,9 @@ It does what `ONNXMiniLM_L6_V2` of chromadb 1.5.9 does:
 The tests compare 135 texts with Python: empty texts, accents, emoji, CJK and other scripts, symbols, control characters, texts of
 254 to 1000 tokens, and short documents.
 The token ids are the same for all of them.
-The largest difference of a component is 1.9e-7 on x64 and 2.4e-7 on arm64.
+On these texts, against chromadb 1.5.9 with onnxruntime 1.31.0, the largest difference of a component is 1.9e-7 on x64 and 2.4e-7 on
+arm64.
+The tests allow 1e-6: other texts can differ more than these.
 The five nearest neighbours of each text are the same.
 The reference of Python is in `tests/ChromaDotNet.Embeddings.Tests/TestData`.
 

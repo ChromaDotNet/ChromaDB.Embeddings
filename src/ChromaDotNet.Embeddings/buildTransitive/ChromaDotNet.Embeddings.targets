@@ -1,4 +1,11 @@
 <Project>
+	<!-- ChromaDotNet.Embeddings on .NET 8 and later: an application built for a 32-bit platform or runtime identifier would build and then
+	     fail to load the native libraries, as ONNX Runtime has no 32-bit library from version 1.23. An AnyCPU application started by a
+	     32-bit runtime is stopped by CreateAsync instead, with a PlatformNotSupportedException. -->
+	<Target Name="ChromaDotNetEmbeddings64BitProcess" BeforeTargets="Build" Condition="'$(TargetFrameworkIdentifier)' == '.NETCoreApp' And ('$(OutputType)' == 'Exe' Or '$(OutputType)' == 'WinExe')">
+		<Error Condition="'$(PlatformTarget)' == 'x86' Or '$(PlatformTarget)' == 'arm' Or $(RuntimeIdentifier.EndsWith('-x86')) Or $(RuntimeIdentifier.EndsWith('-arm'))"
+			   Text="ChromaDotNet.Embeddings needs a 64-bit process: ONNX Runtime has no 32-bit library from version 1.23. Set PlatformTarget to x64, ARM64 or AnyCPU, and a 64-bit RuntimeIdentifier." />
+	</Target>
 	<!-- ChromaDotNet.Embeddings on .NET Framework. .NET Framework does not load native libraries from runtimes/<rid>/native, and the
 	     props of Microsoft.ML.OnnxRuntime that copy onnxruntime.dll reach only the projects that reference it directly. This copies the
 	     native libraries of the tokenizer and of ONNX Runtime next to the application, for x64, AnyCPU without Prefer32Bit, and ARM64.

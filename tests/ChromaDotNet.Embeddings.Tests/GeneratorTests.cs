@@ -48,6 +48,14 @@ public class GeneratorTests
 		}
 	}
 
+	// A 32-bit process cannot load the native libraries: CreateAsync says so before the download.
+	[Test]
+	public void ThirtyTwoBitProcessIsNotSupported()
+	{
+		Assert.Throws<PlatformNotSupportedException>(() => ChromaDefaultEmbeddingGenerator.Check64BitProcess(false));
+		Assert.DoesNotThrow(() => ChromaDefaultEmbeddingGenerator.Check64BitProcess(true));
+	}
+
 	[Test]
 	public async Task GetServiceGivesTheGeneratorAndNothingElse()
 	{
