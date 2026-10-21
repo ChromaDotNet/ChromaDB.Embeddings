@@ -72,6 +72,7 @@ public sealed class ChromaDefaultEmbeddingGenerator : IEmbeddingGenerator<string
 	public static async Task<ChromaDefaultEmbeddingGenerator> CreateAsync(ChromaDefaultEmbeddingOptions? options = null, CancellationToken cancellationToken = default)
 	{
 		options ??= new ChromaDefaultEmbeddingOptions();
+		Check64BitProcess(Environment.Is64BitProcess);
 		var threads = options.IntraOpNumThreads ?? Math.Max(1, Environment.ProcessorCount / 2);
 		if (threads < 1)
 			throw new ArgumentOutOfRangeException(nameof(options), options.IntraOpNumThreads, "ChromaDefaultEmbeddingOptions.IntraOpNumThreads must be at least 1.");
@@ -101,6 +102,14 @@ public sealed class ChromaDefaultEmbeddingGenerator : IEmbeddingGenerator<string
 		if (options.Logger is { } logger)
 			Log.Loaded(logger, onnx, threads, stopwatch.ElapsedMilliseconds);
 		return new ChromaDefaultEmbeddingGenerator(tokenizer, model, onnx, threads);
+	}
+
+	// ONNX Runtime has no 32-bit library from version 1.23, and Tokenizers.DotNet none for x86: in a 32-bit process the native libraries
+	// would fail to load with a DllNotFoundException that does not say why. Before the download, as nothing else can work.
+	internal static void Check64BitProcess(bool is64BitProcess)
+	{
+		if (!is64BitProcess)
+			throw new PlatformNotSupportedException("ChromaDotNet.Embeddings needs a 64-bit process: ONNX Runtime has no 32-bit library from version 1.23. Run the application as a 64-bit process, with PlatformTarget x64, ARM64 or AnyCPU without Prefer32Bit, and a 64-bit runtime.");
 	}
 
 	/// <inheritdoc />
