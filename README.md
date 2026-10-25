@@ -7,7 +7,7 @@ It computes the vectors that the Python client of Chroma computes when a collect
 The model is all-MiniLM-L6-v2 in ONNX, with 384 dimensions.
 The generator is an `IEmbeddingGenerator<string, Embedding<float>>` of Microsoft.Extensions.AI.
 
-ChromaDotNet is an independent community project: .NET libraries and tools for Chroma. It is not affiliated with, endorsed by or sponsored by Chroma Inc. CHROMA is a registered trademark of Chroma Inc.
+ChromaDotNet is an independent community project that provides .NET libraries and tools for Chroma. Independent project. Not affiliated with, endorsed by or sponsored by Chroma Inc. CHROMA is a registered trademark of Chroma Inc., used here only to describe compatibility.
 
 > Preview: the API and the package can still change.
 
