@@ -1,6 +1,6 @@
 # ChromaDotNet.Embeddings
 
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/ChromaDotNet/ChromaDB.Embeddings/badge)](https://scorecard.dev/viewer/?uri=github.com/ChromaDotNet/ChromaDB.Embeddings)
+[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/ChromaDotNet/ChromaDB.Embeddings?label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/ChromaDotNet/ChromaDB.Embeddings)
 
 The default embedding function of Chroma, for .NET.
 It computes the vectors that the Python client of Chroma computes when a collection has no embedding function of its own.
