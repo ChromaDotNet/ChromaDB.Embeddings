@@ -40,12 +40,15 @@ internal static class ModelCache
 	});
 
 	// Path.home() / ".cache" / "chroma" / "onnx_models" / "all-MiniLM-L6-v2", as Python: the profile of the user on Windows, $HOME elsewhere.
-	public static string DefaultCacheDirectory()
+	public static string DefaultCacheDirectory() => Path.Combine(ModelsRoot(nameof(ChromaDefaultEmbeddingOptions)), ChromaDefaultEmbeddingGenerator.ModelId);
+
+	// ~/.cache/chroma/onnx_models, the folder of the models of Python, where each model has a folder of its own.
+	public static string ModelsRoot(string optionsName)
 	{
 		var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 		if (string.IsNullOrEmpty(home))
-			throw new InvalidOperationException("No home folder of the user for the model: set ChromaDefaultEmbeddingOptions.CacheDirectory or ModelDirectory.");
-		return Path.Combine(home, ".cache", "chroma", "onnx_models", ChromaDefaultEmbeddingGenerator.ModelId);
+			throw new InvalidOperationException($"No home folder of the user for the model: set {optionsName}.CacheDirectory or ModelDirectory.");
+		return Path.Combine(home, ".cache", "chroma", "onnx_models");
 	}
 
 	// The folder with the files of the model: ModelDirectory as it is, or the onnx/ folder of the cache, downloaded and extracted when
@@ -99,7 +102,16 @@ internal static class ModelCache
 
 	internal static bool HasAllFiles(string onnx) => ModelFiles.All(name => File.Exists(Path.Combine(onnx, name)));
 
-	private static async Task DownloadAsync(Uri uri, string path, string directory, ILogger? logger, CancellationToken cancellationToken)
+	private static Task DownloadAsync(Uri uri, string path, string directory, ILogger? logger, CancellationToken cancellationToken) =>
+		DownloadFileAsync(uri, path, ArchiveSha256, e => new InvalidOperationException(
+			$"Could not download the model {ChromaDefaultEmbeddingGenerator.ModelId} from {uri}: {e.Message} Without the network: set " +
+			$"ChromaDefaultEmbeddingOptions.DownloadUri to a mirror of {ArchiveFileName}, or ModelDirectory to the onnx/ folder extracted " +
+			$"from it, or put {ArchiveFileName} (SHA-256 {ArchiveSha256}) in {directory}.", e), logger, cancellationToken);
+
+	// A file downloaded into a temporary file of the same folder, hashed while it arrives, and renamed to path only when its SHA-256 hash
+	// is the expected one; otherwise an InvalidDataException, and nothing kept. A failure of the network goes through networkError, which
+	// says what to do without the network.
+	internal static async Task DownloadFileAsync(Uri uri, string path, string expectedSha256, Func<Exception, Exception> networkError, ILogger? logger, CancellationToken cancellationToken)
 	{
 		var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
 		var stopwatch = Stopwatch.StartNew();
@@ -129,13 +141,10 @@ internal static class ModelCache
 			}
 			catch (Exception e) when (e is HttpRequestException or IOException || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
 			{
-				throw new InvalidOperationException(
-					$"Could not download the model {ChromaDefaultEmbeddingGenerator.ModelId} from {uri}: {e.Message} Without the network: set " +
-					$"ChromaDefaultEmbeddingOptions.DownloadUri to a mirror of {ArchiveFileName}, or ModelDirectory to the onnx/ folder extracted " +
-					$"from it, or put {ArchiveFileName} (SHA-256 {ArchiveSha256}) in {directory}.", e);
+				throw networkError(e);
 			}
-			if (actualHash != ArchiveSha256)
-				throw new InvalidDataException($"The file downloaded from {uri} has the SHA-256 hash {actualHash}, not {ArchiveSha256}: it was not kept.");
+			if (actualHash != expectedSha256)
+				throw new InvalidDataException($"The file downloaded from {uri} has the SHA-256 hash {actualHash}, not {expectedSha256}: it was not kept.");
 			Compat.MoveOverwrite(temporary, path);
 			if (logger is not null)
 				Log.Downloaded(logger, path, length, stopwatch.ElapsedMilliseconds);
@@ -226,7 +235,7 @@ internal static class ModelCache
 
 	// The lock file stays: deleted, a process could lock the old file while another creates a new one. The open is tried again only
 	// while another process (or another call of this one) holds the file; any other error ends at once.
-	internal static async Task<FileStream> LockAsync(string path, CancellationToken cancellationToken)
+	internal static async Task<FileStream> LockAsync(string path, CancellationToken cancellationToken, string optionsName = nameof(ChromaDefaultEmbeddingOptions))
 	{
 		while (true)
 		{
@@ -240,7 +249,7 @@ internal static class ModelCache
 			}
 			catch (Exception e) when (e is IOException or UnauthorizedAccessException)
 			{
-				throw CacheError(Path.GetDirectoryName(path)!, e);
+				throw CacheError(Path.GetDirectoryName(path)!, e, optionsName);
 			}
 		}
 	}
@@ -256,7 +265,7 @@ internal static class ModelCache
 		return Compat.IsMacOS ? e.HResult == 35 : e.HResult == 11;
 	}
 
-	private static void TryDelete(string path)
+	internal static void TryDelete(string path)
 	{
 		try
 		{
@@ -268,6 +277,6 @@ internal static class ModelCache
 		}
 	}
 
-	private static IOException CacheError(string directory, Exception e) =>
-		new($"Cannot use {directory} for the model: {e.Message} Set ChromaDefaultEmbeddingOptions.CacheDirectory to another folder, or ModelDirectory to the extracted files.", e);
+	internal static IOException CacheError(string directory, Exception e, string optionsName = nameof(ChromaDefaultEmbeddingOptions)) =>
+		new($"Cannot use {directory} for the model: {e.Message} Set {optionsName}.CacheDirectory to another folder, or ModelDirectory to the files of the model.", e);
 }

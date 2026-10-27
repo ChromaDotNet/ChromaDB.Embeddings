@@ -21,4 +21,7 @@ internal static partial class Log
 
 	[LoggerMessage(EventId = 6, Level = LogLevel.Warning, Message = "Cannot write {Path} ({Error}): the tokenizer is loaded from a temporary file.")]
 	public static partial void TokenizerCopyNotWritten(ILogger logger, string path, string error);
+
+	[LoggerMessage(EventId = 7, Level = LogLevel.Warning, Message = "The text at {Index} has {Tokens} tokens: the model reads the first {MaxTokens}.")]
+	public static partial void Truncated(ILogger logger, int index, int tokens, int maxTokens);
 }
