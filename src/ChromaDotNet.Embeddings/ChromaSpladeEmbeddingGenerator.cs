@@ -5,8 +5,9 @@ namespace ChromaDotNet.Embeddings;
 
 /// <summary>
 /// The hosted sparse embedding function <c>chroma-cloud-splade</c> of Chroma Cloud, computed on this machine: SPLADE
-/// (prithivida/Splade_PP_en_v1) in ONNX, the export of its repository. The values are those of the service within its float16: the
-/// service computes in float16, this generator in float32.
+/// (prithivida/Splade_PP_en_v1) in ONNX, the export of its repository. The service gives its values in float16, this generator in
+/// float32. On the texts of the tests, the terms of this generator are among those of the service, which has a few more below 0.02, and
+/// the values differ by less than 0.05: the service itself gives values about 0.01 apart to a text alone and to the same text in a batch.
 /// </summary>
 /// <remarks>
 /// Create it with <see cref="CreateAsync"/>. Each text is computed alone, truncated to <see cref="MaxTokens"/> tokens as the service

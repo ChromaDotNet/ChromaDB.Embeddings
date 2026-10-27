@@ -9,9 +9,10 @@ namespace ChromaDotNet.Embeddings.Tests;
 [TestFixture]
 public class SpladeTests
 {
-	// Measured against Chroma Cloud, in Python with the same file: the service computes in float16, so it has 0 to 3 more terms per text,
-	// with values up to 0.016, and the values of the terms of both differ by up to 0.045; the terms of the local vector are always among
-	// those of the service. Chroma Cloud against itself, between a batch and a text alone: values up to 0.010 apart.
+	// Measured against Chroma Cloud, in Python with the same file: the service has 0 to 3 more terms per text, with values up to 0.016,
+	// and the values of the terms of both differ by up to 0.045; the terms of the local vector are always among those of the service.
+	// The values of the service are float16 numbers, but PyTorch in float16 is as far from them as in float32. Chroma Cloud against
+	// itself, between a batch and a text alone: values up to 0.010 apart.
 	private const float CloudOnlyTolerance = 0.02f;
 	private const float CloudValueTolerance = 0.06f;
 
