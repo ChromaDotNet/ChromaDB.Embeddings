@@ -10,5 +10,6 @@
 		<ProjectReference Include="..\..\src\ChromaDotNet.Embeddings\ChromaDotNet.Embeddings.csproj" />
 		<None Include="..\ChromaDotNet.Embeddings.Tests\TestData\corpus.json" Link="corpus.json" CopyToOutputDirectory="PreserveNewest" />
 		<None Include="..\ChromaDotNet.Embeddings.Tests\TestData\python.json" Link="python.json" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\ChromaDotNet.Embeddings.Tests\TestData\hosted\cloud-v2.json" Link="cloud-v2.json" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 </Project>
