@@ -1,10 +1,11 @@
+using System.Text.Json;
 using Microsoft.Extensions.AI;
 using NUnit.Framework;
 
 namespace ChromaDotNet.Embeddings.Tests;
 
 // Qwen3-Embedding-0.6B against the vectors Chroma Cloud recorded (TestData/hosted/cloud-v1.json and cloud-v2.json), and against
-// onnxruntime 1.24.4 in Python on the same ONNX files (python-onnx.json).
+// onnxruntime 1.24.4 in Python on the same ONNX files (python-onnx.json, and the vectors of Python on this machine in the CI).
 [TestFixture(ChromaQwenVariant.Float16)]
 [TestFixture(ChromaQwenVariant.Float32)]
 public class QwenTests
@@ -76,12 +77,32 @@ public class QwenTests
 		Assert.That(different, Is.Empty);
 	}
 
-	// The token ids of Tokenizers.DotNet are those of tokenizers in Python, and the vectors those of onnxruntime 1.24.4 in Python.
+	// The token ids of Tokenizers.DotNet are those of tokenizers in Python, and the vectors those of onnxruntime 1.24.4 in Python, as
+	// the machine that wrote python-onnx.json computed them.
 	[Test]
 	public async Task VectorsAreThoseOfOnnxRuntimeInPython()
 	{
+		var (worst, worstCosine) = await CompareWithPythonAsync(HostedReference.Python);
+		TestContext.Out.WriteLine($"{_variant}: against onnxruntime in Python, max abs diff {worst:E2}, 1 - cosine at most {worstCosine:E2}");
+		Assert.That(worst, Is.LessThanOrEqualTo(PythonTolerance));
+	}
+
+	// The same against onnxruntime in Python on this machine, whose vectors the CI computes on each runner: the same processor.
+	[Test]
+	public async Task VectorsAreThoseOfOnnxRuntimeInPythonOnThisMachine()
+	{
+		var python = HostedReference.PythonOfThisMachine ?? throw new IgnoreException("No vectors of Python of this machine: CHROMADOTNET_EMBEDDINGS_HOSTED_PYTHON is not set.");
+		var (worst, worstCosine) = await CompareWithPythonAsync(python);
+		TestContext.Out.WriteLine($"{_variant}: against onnxruntime in Python on this machine, max abs diff {worst:E2}, 1 - cosine at most {worstCosine:E2}");
+		Assert.That(worst, Is.LessThanOrEqualTo(SameMachineTolerance));
+	}
+
+	// The largest difference of a value and of 1 - cosine from the vectors of Python, whose token ids must be the same.
+	private async Task<(float Worst, double WorstCosine)> CompareWithPythonAsync(JsonElement reference)
+	{
 		var generator = await HostedGenerators.QwenAsync(_variant);
-		var python = HostedReference.Python.GetProperty(PythonName);
+		if (!reference.TryGetProperty(PythonName, out var python))
+			throw new AssertionException($"The vectors of Python have no {PythonName}.");
 		var cloud = HostedReference.Case("qwen-documents");
 		var queries = HostedReference.Case("qwen-queries");
 		var worst = 0f;
@@ -100,8 +121,7 @@ public class QwenTests
 				worstCosine = Math.Max(worstCosine, 1 - Vectors.Cosine(local, expected));
 			}
 		}
-		TestContext.Out.WriteLine($"{_variant}: against onnxruntime in Python, max abs diff {worst:E2}, 1 - cosine at most {worstCosine:E2}");
-		Assert.That(worst, Is.LessThanOrEqualTo(PythonTolerance));
+		return (worst, worstCosine);
 	}
 
 	[Test]
@@ -173,12 +193,17 @@ public class QwenTests
 	private float PythonTolerance => PythonTolerances[_variant];
 
 	// On the machine that wrote python-onnx.json the vectors are those of Python bit for bit, in both variants. Another processor runs
-	// other kernels of ONNX Runtime: the tolerance of build/python-hosted-reference.py.
+	// other kernels of ONNX Runtime: the tolerances of build/python-hosted-reference.py. On the runners of the CI, float16 differed by
+	// up to 4.0e-4, float32 by up to 2.6e-7.
 	private static readonly Dictionary<ChromaQwenVariant, float> PythonTolerances = new()
 	{
-		[ChromaQwenVariant.Float16] = 1e-4f,
+		[ChromaQwenVariant.Float16] = 1e-3f,
 		[ChromaQwenVariant.Float32] = 1e-4f,
 	};
+
+	// Against onnxruntime in Python on the same machine, bit for bit: on each runner of the CI, the vectors were the same in every
+	// variant it tests.
+	private const float SameMachineTolerance = 0f;
 }
 
 // The instructions and the format of the queries, without the model.

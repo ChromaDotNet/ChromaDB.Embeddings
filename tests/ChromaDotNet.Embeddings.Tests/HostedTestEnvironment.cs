@@ -6,9 +6,12 @@ namespace ChromaDotNet.Embeddings.Tests;
 // The files of the hosted models for the tests, never downloaded by the tests:
 //   CHROMADOTNET_EMBEDDINGS_HOSTED_MODELS: a folder with a folder for each repository of Hugging Face, named owner__name, in the layout
 //     of the repository (onnx-community__Qwen3-Embedding-0.6B-ONNX, prithivida__Splade_PP_en_v1): used as ModelDirectory;
-//   CHROMADOTNET_EMBEDDINGS_HOSTED_CACHE: the cache of the package, as build/fetch-hosted-models.sh fills it: used as CacheDirectory;
+//   CHROMADOTNET_EMBEDDINGS_HOSTED_CACHE: the cache of the package, as build/fetch-hosted-models.sh fills it, used as CacheDirectory;
+//     artifacts/hosted-models by default, where the script puts it;
 //   CHROMADOTNET_EMBEDDINGS_HOSTED: the models a run must test, like qwen-fp16,splade; the others are skipped. Without it, a model is
-//     tested when its files are there, and skipped otherwise.
+//     tested when its files are there, and skipped otherwise;
+//   CHROMADOTNET_EMBEDDINGS_HOSTED_PYTHON: the vectors of onnxruntime in Python on this machine, that build/python-hosted-reference.py
+//     --output wrote: the CI computes them on each runner. Without it, the comparison on the same machine is skipped.
 internal static class HostedTestEnvironment
 {
 	public const string QwenFloat16 = "qwen-fp16";
@@ -17,9 +20,14 @@ internal static class HostedTestEnvironment
 
 	private static string? ModelsRoot => Variable("CHROMADOTNET_EMBEDDINGS_HOSTED_MODELS");
 
-	private static string? CacheRoot => Variable("CHROMADOTNET_EMBEDDINGS_HOSTED_CACHE");
+	private static string? CacheRoot => Variable("CHROMADOTNET_EMBEDDINGS_HOSTED_CACHE") ?? DefaultCache;
+
+	private static string DefaultCache { get; } = typeof(HostedTestEnvironment).Assembly.GetCustomAttributes(typeof(System.Reflection.AssemblyMetadataAttribute), false)
+		.Cast<System.Reflection.AssemblyMetadataAttribute>().First(a => a.Key == "EmbeddingsHostedCache").Value!;
 
 	private static string[]? Required => Variable("CHROMADOTNET_EMBEDDINGS_HOSTED")?.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0).ToArray();
+
+	public static string? PythonOfThisMachinePath => Variable("CHROMADOTNET_EMBEDDINGS_HOSTED_PYTHON");
 
 	public static string Name(ChromaQwenVariant variant) => variant == ChromaQwenVariant.Float16 ? QwenFloat16 : QwenFloat32;
 
@@ -153,17 +161,22 @@ public sealed class HostedGenerators
 }
 
 // The recordings of Chroma Cloud (TestData/hosted/cloud-v1.json and cloud-v2.json) and the reference of Python with onnxruntime 1.24.4
-// (python-onnx.json, written by build/python-hosted-reference.py).
+// (python-onnx.json, written by build/python-hosted-reference.py), with the vectors of Python on this machine when the run has them.
 internal static class HostedReference
 {
 	private static readonly Lazy<IReadOnlyList<CloudCase>> CasesData = new(() => [.. ReadCases("cloud-v1.json"), .. ReadCases("cloud-v2.json")]);
 	private static readonly Lazy<JsonDocument> PythonData = new(() => JsonDocument.Parse(File.ReadAllBytes(DataPath("python-onnx.json"))));
+	private static readonly Lazy<JsonDocument?> PythonOfThisMachineData = new(() =>
+		HostedTestEnvironment.PythonOfThisMachinePath is { } path ? JsonDocument.Parse(File.ReadAllBytes(path)) : null);
 
 	public static IReadOnlyList<CloudCase> Cases => CasesData.Value;
 
 	public static CloudCase Case(string name) => Cases.Single(c => c.Name == name);
 
 	public static JsonElement Python => PythonData.Value.RootElement;
+
+	// The vectors of onnxruntime in Python on this machine, from CHROMADOTNET_EMBEDDINGS_HOSTED_PYTHON, or null.
+	public static JsonElement? PythonOfThisMachine => PythonOfThisMachineData.Value?.RootElement;
 
 	private static List<CloudCase> ReadCases(string file)
 	{

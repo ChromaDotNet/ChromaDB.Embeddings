@@ -221,3 +221,26 @@ public class HostedCacheTests
 		return string.Concat(hash.Select(b => b.ToString("x2", CultureInfo.InvariantCulture)));
 	}
 }
+
+// The files that the CI downloads with build/fetch-hosted-models.sh are those of the package: the same folders, revisions and hashes.
+[TestFixture]
+public class HostedModelsTests
+{
+	[Test]
+	public void FetchScriptHasTheFilesOfThePackage()
+	{
+		var lines = File.ReadAllLines(Path.Combine(AppContext.BaseDirectory, "TestData", "fetch-hosted-models.sh"))
+			.Select(line => line.Trim())
+			.Where(line => line.Length > 0 && line[0] == '"')
+			.Select(line => line.Trim('"'))
+			.ToArray();
+		var expected = new List<string>();
+		foreach (var (name, model) in new[] { (HostedTestEnvironment.QwenFloat16, HostedModels.QwenFloat16), (HostedTestEnvironment.QwenFloat32, HostedModels.QwenFloat32), (HostedTestEnvironment.Splade, HostedModels.Splade) })
+		{
+			var folder = model.Subfolder is null ? model.Folder : model.Folder + "/" + model.Subfolder;
+			foreach (var file in model.Files)
+				expected.Add($"{name} {folder} {model.Repository} {model.Revision} {file.Path} {file.Sha256}");
+		}
+		Assert.That(lines, Is.EquivalentTo(expected));
+	}
+}

@@ -8,9 +8,13 @@
 		<!-- onnx.tar.gz, as Python downloads it, for the local mirror and to fill the model cache without the network: build/fetch-model.sh
 		     puts it here; CHROMADOTNET_EMBEDDINGS_ARCHIVE or -p:EmbeddingsArchive=<path> take another copy. -->
 		<EmbeddingsArchive Condition="'$(EmbeddingsArchive)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\artifacts\model\onnx.tar.gz'))</EmbeddingsArchive>
+		<!-- The files of the hosted models, in the layout of the cache of the package: build/fetch-hosted-models.sh puts them here;
+		     CHROMADOTNET_EMBEDDINGS_HOSTED_CACHE or -p:EmbeddingsHostedCache=<path> take another folder. -->
+		<EmbeddingsHostedCache Condition="'$(EmbeddingsHostedCache)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\artifacts\hosted-models'))</EmbeddingsHostedCache>
 	</PropertyGroup>
 	<ItemGroup>
 		<AssemblyMetadata Include="EmbeddingsTestRoot" Value="$([System.IO.Path]::GetFullPath('$(EmbeddingsTestRoot)'))" />
 		<AssemblyMetadata Include="EmbeddingsArchive" Value="$(EmbeddingsArchive)" />
+		<AssemblyMetadata Include="EmbeddingsHostedCache" Value="$(EmbeddingsHostedCache)" />
 	</ItemGroup>
 </Project>

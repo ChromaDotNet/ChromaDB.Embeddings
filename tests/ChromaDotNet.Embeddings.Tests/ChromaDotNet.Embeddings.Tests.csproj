@@ -18,6 +18,8 @@
 	<ItemGroup>
 		<!-- The texts and the reference of Python (chromadb 1.5.9), checked and written again by build/python-reference.py. -->
 		<None Include="TestData\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+		<!-- The files and hashes the CI downloads, which a test compares with those of the package. -->
+		<None Include="..\..\build\fetch-hosted-models.sh" Link="TestData\fetch-hosted-models.sh" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 	<!-- The targets the package gives an application on .NET Framework: a project reference does not get them. -->
 	<Import Project="..\..\src\ChromaDotNet.Embeddings\buildTransitive\ChromaDotNet.Embeddings.targets" />

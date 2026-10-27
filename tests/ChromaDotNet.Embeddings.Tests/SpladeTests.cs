@@ -1,10 +1,11 @@
+using System.Text.Json;
 using Microsoft.Extensions.AI;
 using NUnit.Framework;
 
 namespace ChromaDotNet.Embeddings.Tests;
 
 // SPLADE (prithivida/Splade_PP_en_v1) against the vectors Chroma Cloud recorded (TestData/hosted/cloud-v1.json and cloud-v2.json), and
-// against onnxruntime 1.24.4 in Python on the same ONNX file (python-onnx.json).
+// against onnxruntime 1.24.4 in Python on the same ONNX file (python-onnx.json, and the vectors of Python on this machine in the CI).
 [TestFixture]
 public class SpladeTests
 {
@@ -17,6 +18,9 @@ public class SpladeTests
 	// On the machine that wrote python-onnx.json the vectors are those of Python bit for bit. Another processor runs other kernels of
 	// ONNX Runtime: the tolerance of build/python-hosted-reference.py, and a value near zero may be above zero on one side only.
 	private const float PythonTolerance = 1e-3f;
+
+	// Against onnxruntime in Python on the same machine, bit for bit: on each runner of the CI, the vectors were the same.
+	private const float SameMachineTolerance = 0f;
 
 	[Test]
 	public async Task VectorsAreThoseOfCloud()
@@ -74,12 +78,32 @@ public class SpladeTests
 		Assert.That(different, Is.Empty);
 	}
 
-	// The token ids of Tokenizers.DotNet are those of tokenizers in Python, and the vectors those of onnxruntime 1.24.4 in Python.
+	// The token ids of Tokenizers.DotNet are those of tokenizers in Python, and the vectors those of onnxruntime 1.24.4 in Python, as
+	// the machine that wrote python-onnx.json computed them.
 	[Test]
 	public async Task VectorsAreThoseOfOnnxRuntimeInPython()
 	{
+		var (worst, different) = await CompareWithPythonAsync(HostedReference.Python);
+		TestContext.Out.WriteLine($"against onnxruntime in Python: {different} indices on one side only, largest difference of a value {worst:E2}");
+		Assert.That(worst, Is.LessThanOrEqualTo(PythonTolerance));
+	}
+
+	// The same against onnxruntime in Python on this machine, whose vectors the CI computes on each runner: the same processor.
+	[Test]
+	public async Task VectorsAreThoseOfOnnxRuntimeInPythonOnThisMachine()
+	{
+		var python = HostedReference.PythonOfThisMachine ?? throw new IgnoreException("No vectors of Python of this machine: CHROMADOTNET_EMBEDDINGS_HOSTED_PYTHON is not set.");
+		var (worst, different) = await CompareWithPythonAsync(python);
+		TestContext.Out.WriteLine($"against onnxruntime in Python on this machine: {different} indices on one side only, largest difference of a value {worst:E2}");
+		Assert.That(worst, Is.LessThanOrEqualTo(SameMachineTolerance));
+	}
+
+	// The largest difference of a value from the vectors of Python, whose token ids must be the same, and the indices of one side only.
+	private static async Task<(float Worst, int Different)> CompareWithPythonAsync(JsonElement reference)
+	{
 		var generator = await HostedGenerators.SpladeAsync();
-		var python = HostedReference.Python.GetProperty("splade");
+		if (!reference.TryGetProperty("splade", out var python))
+			throw new AssertionException("The vectors of Python have no splade.");
 		var worst = 0f;
 		var different = 0;
 		foreach (var (kind, texts) in new[] { ("documents", HostedReference.Case("splade-documents").Texts), ("queries", HostedReference.Case("splade-queries").Texts) })
@@ -101,8 +125,7 @@ public class SpladeTests
 					worst = Math.Max(worst, Math.Abs(At(local, index) - At(expected, index)));
 			}
 		}
-		TestContext.Out.WriteLine($"against onnxruntime in Python: {different} indices on one side only, largest difference of a value {worst:E2}");
-		Assert.That(worst, Is.LessThanOrEqualTo(PythonTolerance));
+		return (worst, different);
 
 		static float At(Dictionary<int, float> vector, int index) => vector.TryGetValue(index, out var value) ? value : 0f;
 	}
