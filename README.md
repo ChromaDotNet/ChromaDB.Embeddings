@@ -167,6 +167,33 @@ The CI also computes the vectors of Python on each runner, and the tests require
 They were, on Windows x64, Linux x64, Linux arm64 and macOS arm64: for Qwen in float16 and SPLADE on each, and for Qwen in float32
 on Linux x64, the only runner with its files.
 
+### Their speed
+
+In our tests, these are the times of one text at a time, on the CPU, with the files already downloaded.
+The machine is a 13th Gen Intel Core i5-13600KF with 20 logical processors, on Windows 11 and .NET 8, so 10 threads by default.
+Before each run, other processes used 19% to 27% of its CPU.
+Each value is the median of 5 runs, each in its own process.
+
+| | Qwen in float16 | Qwen in float32 | SPLADE |
+|---|---|---|---|
+| Load | 2.2 s | 2.0 s | 0.7 s |
+| A query of the tests: 28 to 38 tokens with the instruction of Qwen, 7 to 16 for SPLADE | 69 ms | 69 ms | 12 ms |
+| A document of 106 tokens for Qwen, 108 for SPLADE | 181 ms | 175 ms | 42 ms |
+| A document of 661 tokens for Qwen, truncated to 512 for SPLADE | 1.3 s | 1.2 s | 194 ms |
+| A document of 3322 tokens for Qwen, truncated to 512 for SPLADE | 11.7 s | 11.4 s | 195 ms |
+| Peak working set of the process | 4.3 GB | 4.8 GB | 0.79 GB |
+
+Qwen is slow to index many long documents: the time of each token grows with the length of the text.
+The memory of its attention grows with the square of the tokens of a text: in the ONNX export, the mask of the attention has a value
+for each pair of tokens.
+In our tests, the peak of Qwen in float16 was 4.3 GB, with texts of up to 3322 tokens.
+On a document of about 100 tokens, SPLADE takes about a quarter of the time of Qwen.
+SPLADE reads 512 tokens at most, so a longer document takes it no more time.
+In float16, Qwen downloads half the bytes of float32, and takes up to 6% more time for a text.
+The load took longer in the first of the 5 runs: 2.5 s for Qwen in float32, 1.5 s for SPLADE.
+For Qwen in float16, onnxruntime 1.24.4 in Python with the same files takes the same times, within the differences between two runs.
+So does a NativeAOT build.
+
 ## Platforms
 
 | | .NET 8 and later | .NET Framework 4.6.2 and later |

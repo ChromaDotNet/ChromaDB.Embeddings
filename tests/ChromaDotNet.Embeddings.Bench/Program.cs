@@ -9,8 +9,8 @@ using ChromaDotNet.Embeddings;
 //   dotnet run -c Release --project tests/ChromaDotNet.Embeddings.Bench [-- 8]
 // The hosted models, with the files that build/fetch-hosted-models.sh puts in artifacts/hosted-models, or in
 // CHROMADOTNET_EMBEDDINGS_HOSTED_CACHE: the load, then one text at a time, on texts of the recording of Chroma Cloud. The 12 queries 3
-// times, then a document of about 100 tokens 5 times, one of about 660 tokens 3 times and, for Qwen, one of about 3,300 tokens once:
-// the median of each, with the tokens read. One model per run.
+// times, then a document of about 100 tokens 5 times, one of about 660 tokens 3 times and one of about 3,300 tokens once: the median
+// of each, with the tokens read (512 at most for SPLADE). One model per run.
 //   dotnet run -c Release --project tests/ChromaDotNet.Embeddings.Bench -- qwen-fp16|qwen-fp32|splade [8]
 if (args.Length > 0 && args[0] is "qwen-fp16" or "qwen-fp32" or "splade")
 {
@@ -88,9 +88,8 @@ static async Task HostedAsync(string model, int? threads)
 		var firstMs = watch.ElapsedMilliseconds;
 		var line = $"{model}, threads {threads?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? $"default ({Math.Max(1, Environment.ProcessorCount / 2)})"}: " +
 			$"load {loadMs} ms, first query {firstMs} ms, queries of {await MedianAsync(query, queries, 3)}, " +
-			$"documents of {await MedianAsync(document, [documents[4]], 5)}, of {await MedianAsync(document, [documents[32]], 3)}";
-		if (model != "splade")
-			line += $", of {await MedianAsync(document, [documents[33]], 1)}";
+			$"documents of {await MedianAsync(document, [documents[4]], 5)}, of {await MedianAsync(document, [documents[32]], 3)}, " +
+			$"of {await MedianAsync(document, [documents[33]], 1)}";
 		var process = Process.GetCurrentProcess();
 		Console.WriteLine(line + $", working set {loaded / 1024 / 1024} MB after the load (before {before / 1024 / 1024} MB), peak {process.PeakWorkingSet64 / 1024 / 1024} MB");
 	}
