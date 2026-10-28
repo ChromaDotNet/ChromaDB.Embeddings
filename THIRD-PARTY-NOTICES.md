@@ -59,7 +59,7 @@ in its packages.
 
 | Package | Version | License | Project |
 |---|---|---|---|
-| ElBruno.LocalEmbeddings | 1.6.4 | MIT | https://github.com/elbruno/elbruno.localembeddings |
+| ElBruno.LocalEmbeddings | 1.6.6 | MIT | https://github.com/elbruno/elbruno.localembeddings |
 | ElBruno.HuggingFace.Downloader | 0.6.0 | MIT | https://github.com/elbruno/ElBruno.HuggingFace.Downloader |
 | Tokenizers.DotNet.runtime.linux-x64, linux-arm64, osx-x64, osx-arm64 | 1.4.1 | MIT | https://github.com/sappho192/Tokenizers.DotNet |
 | Microsoft.ML.Tokenizers | 2.0.0 | MIT | https://github.com/dotnet/machinelearning |

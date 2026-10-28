@@ -6,7 +6,7 @@
 		<PackageId>ChromaDotNet.Embeddings</PackageId>
 		<RootNamespace>ChromaDotNet.Embeddings</RootNamespace>
 		<PackageDescription>The embedding functions of Chroma for .NET, computed locally. The default one: all-MiniLM-L6-v2 in ONNX, with the same vectors as the Python client. The hosted ones of Chroma Cloud: chroma-cloud-qwen (Qwen3-Embedding-0.6B) and chroma-cloud-splade (SPLADE), without an account or an API key. IEmbeddingGenerator of Microsoft.Extensions.AI, for ChromaDotNet.Client 2.17.0 and later. The models are downloaded at the first start and checked with their SHA-256: the default one into the cache folder of Python, the hosted ones from Hugging Face. On .NET 8 and later the default model runs through ElBruno.LocalEmbeddings by Bruno Capuano; on .NET Framework (Windows, 64-bit), and for the hosted models, on ONNX Runtime. Tokenizer: Hugging Face, through Tokenizers.DotNet. Intel Macs and 32-bit processes are not supported. Independent project. Not affiliated with, endorsed by or sponsored by Chroma Inc. CHROMA is a registered trademark of Chroma Inc., used here only to describe compatibility.</PackageDescription>
-		<PackageReleaseNotes>1.0.0-preview.5: the hosted embedding functions of Chroma Cloud, computed on this machine, with the vectors of the service within small differences. ChromaQwenEmbeddingGenerator is chroma-cloud-qwen: Qwen3-Embedding-0.6B in ONNX, float16 by default or float32, 1024 dimensions, with the instructions of the task nl_to_code for the queries. ChromaSpladeEmbeddingGenerator is chroma-cloud-splade: the sparse embeddings of SPLADE, prithivida/Splade_PP_en_v1. Their models are downloaded from Hugging Face at the first start, at fixed revisions, and checked with their SHA-256. The default model does not change. All the releases: $(PackageProjectUrl)/releases.</PackageReleaseNotes>
+		<PackageReleaseNotes>1.0.0-preview.5: the hosted embedding functions of Chroma Cloud, computed on this machine, with the vectors of the service within small differences. ChromaQwenEmbeddingGenerator is chroma-cloud-qwen: Qwen3-Embedding-0.6B in ONNX, float16 by default or float32, 1024 dimensions, with the instructions of the task nl_to_code for the queries. ChromaSpladeEmbeddingGenerator is chroma-cloud-splade: the sparse embeddings of SPLADE, prithivida/Splade_PP_en_v1. Their models are downloaded from Hugging Face at the first start, at fixed revisions, and checked with their SHA-256. The default model does not change. On .NET 8 and later it runs through ElBruno.LocalEmbeddings 1.6.6, not 1.6.4. That version changes only its model downloader, which this package does not use. All the releases: $(PackageProjectUrl)/releases.</PackageReleaseNotes>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
@@ -34,7 +34,7 @@
 	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
 		<!-- The ONNX model: mean pooling with the attention mask and L2 normalization. It brings Microsoft.Extensions.AI.Abstractions
 		     10.4.1 and ONNX Runtime 1.24.4. -->
-		<PackageReference Include="ElBruno.LocalEmbeddings" Version="1.6.4" />
+		<PackageReference Include="ElBruno.LocalEmbeddings" Version="1.6.6" />
 		<PackageReference Include="Tokenizers.DotNet.runtime.linux-x64" Version="$(TokenizersVersion)" />
 		<PackageReference Include="Tokenizers.DotNet.runtime.linux-arm64" Version="$(TokenizersVersion)" />
 		<!-- Kept for the tokenizer, though ONNX Runtime 1.24 has no osx-x64 library: Intel Macs are not supported. -->
