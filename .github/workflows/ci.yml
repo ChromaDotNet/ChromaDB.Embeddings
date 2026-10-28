@@ -1,6 +1,9 @@
 # Packs, and runs the tests on each platform: .NET 8 on Windows, Linux x64 and arm64, and macOS arm64, and .NET Framework 4.8 on
-# Windows, with the model archive downloaded from the address of the Python client and kept in the cache of the CI. The reference of
-# Python computes the vectors of the test texts again with chromadb and compares them with the files of the tests. A version tag, like
+# Windows, with the model archive downloaded from the address of the Python client and kept in the cache of the CI. The hosted models of
+# Chroma Cloud come from Hugging Face and are kept in the cache too: Qwen3-Embedding-0.6B in float16 and SPLADE on every platform, and
+# Qwen3-Embedding-0.6B in float32 on Linux x64 only, so that the cache of the repository stays within its 10 GB. The reference of
+# Python computes the vectors of the test texts again with chromadb, and those of the hosted models with onnxruntime, and compares them
+# with the files of the tests. A version tag, like
 # v1.0.0-preview.1, also publishes: the GitHub release with the packages and their build provenance, then the packages on NuGet, with
 # trusted publishing, in the environment nuget.
 name: CI
@@ -56,19 +59,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # hosted: the hosted models the run must test, as CHROMADOTNET_EMBEDDINGS_HOSTED.
         include:
           - runner: windows-latest
             framework: net8.0
+            hosted: qwen-fp16,splade
           - runner: ubuntu-24.04
             framework: net8.0
+            hosted: qwen-fp16,qwen-fp32,splade
           - runner: ubuntu-24.04-arm
             framework: net8.0
+            hosted: qwen-fp16,splade
           - runner: macos-latest
             framework: net8.0
+            hosted: qwen-fp16,splade
           - runner: windows-latest
             framework: net48
+            hosted: qwen-fp16,splade
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 30
+    timeout-minutes: 45
     defaults:
       run:
         shell: bash
@@ -90,15 +99,64 @@ jobs:
           key: model-${{ env.MODEL_SHA256 }}
       - name: The model archive, from the address of the Python client
         run: bash build/fetch-model.sh
+      # One entry for each model, which every platform can restore: the files are the same everywhere.
+      - name: Cache of Qwen3-Embedding-0.6B in float16
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: artifacts/hosted-models/Qwen3-Embedding-0.6B/fp16
+          key: hosted-qwen-fp16-${{ hashFiles('build/fetch-hosted-models.sh') }}
+          enableCrossOsArchive: true
+      - name: Cache of Qwen3-Embedding-0.6B in float32
+        if: contains(matrix.hosted, 'qwen-fp32')
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: artifacts/hosted-models/Qwen3-Embedding-0.6B/fp32
+          key: hosted-qwen-fp32-${{ hashFiles('build/fetch-hosted-models.sh') }}
+          enableCrossOsArchive: true
+      - name: Cache of SPLADE
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: artifacts/hosted-models/Splade_PP_en_v1
+          key: hosted-splade-${{ hashFiles('build/fetch-hosted-models.sh') }}
+          enableCrossOsArchive: true
+      - name: The hosted models, from Hugging Face
+        env:
+          HOSTED: ${{ matrix.hosted }}
+        run: bash build/fetch-hosted-models.sh ${HOSTED//,/ }
+      # The vectors of onnxruntime in Python on this runner: the tests compare those of .NET with them on the same processor.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: onnxruntime 1.24.4
+        run: |
+          python -m venv artifacts/venv-hosted
+          bin=artifacts/venv-hosted/bin
+          [ -d "$bin" ] || bin=artifacts/venv-hosted/Scripts
+          "$bin/python" -m pip install --quiet --require-hashes -r build/python-hosted-requirements.txt
+          echo "HOSTED_PYTHON=$bin/python" >> "$GITHUB_ENV"
+      - name: The vectors of the hosted models in Python, on this runner
+        env:
+          HOSTED: ${{ matrix.hosted }}
+        run: |
+          fp32=-
+          if [[ ",$HOSTED," == *,qwen-fp32,* ]]; then fp32=artifacts/hosted-models/Qwen3-Embedding-0.6B/fp32; fi
+          "$HOSTED_PYTHON" -I build/python-hosted-reference.py "$fp32" artifacts/hosted-models/Qwen3-Embedding-0.6B/fp16 \
+            artifacts/hosted-models/Splade_PP_en_v1 --output artifacts/python-onnx-runner.json
       - name: Tests
+        env:
+          CHROMADOTNET_EMBEDDINGS_HOSTED: ${{ matrix.hosted }}
+          CHROMADOTNET_EMBEDDINGS_HOSTED_PYTHON: ${{ github.workspace }}/artifacts/python-onnx-runner.json
         run: dotnet test tests/ChromaDotNet.Embeddings.Tests -c Release -f ${{ matrix.framework }} --logger "console;verbosity=normal"
 
   python-reference:
     name: Reference of Python
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
       - name: Cache of the model archive
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -115,6 +173,34 @@ jobs:
           mkdir -p artifacts/python-model
           cp artifacts/model/onnx.tar.gz artifacts/python-model/
           artifacts/venv/bin/python -I build/python-reference.py artifacts/python-model
+      - name: Cache of Qwen3-Embedding-0.6B in float16
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: artifacts/hosted-models/Qwen3-Embedding-0.6B/fp16
+          key: hosted-qwen-fp16-${{ hashFiles('build/fetch-hosted-models.sh') }}
+          enableCrossOsArchive: true
+      - name: Cache of Qwen3-Embedding-0.6B in float32
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: artifacts/hosted-models/Qwen3-Embedding-0.6B/fp32
+          key: hosted-qwen-fp32-${{ hashFiles('build/fetch-hosted-models.sh') }}
+          enableCrossOsArchive: true
+      - name: Cache of SPLADE
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: artifacts/hosted-models/Splade_PP_en_v1
+          key: hosted-splade-${{ hashFiles('build/fetch-hosted-models.sh') }}
+          enableCrossOsArchive: true
+      - name: The hosted models, from Hugging Face
+        run: bash build/fetch-hosted-models.sh qwen-fp16 qwen-fp32 splade
+      - name: onnxruntime 1.24.4
+        run: |
+          python3 -m venv artifacts/venv-hosted
+          artifacts/venv-hosted/bin/python -m pip install --quiet --require-hashes -r build/python-hosted-requirements.txt
+      - name: The vectors of the hosted models in Python are those of the tests
+        run: |
+          artifacts/venv-hosted/bin/python -I build/python-hosted-reference.py artifacts/hosted-models/Qwen3-Embedding-0.6B/fp32 \
+            artifacts/hosted-models/Qwen3-Embedding-0.6B/fp16 artifacts/hosted-models/Splade_PP_en_v1
 
   publish:
     name: Publish the preview

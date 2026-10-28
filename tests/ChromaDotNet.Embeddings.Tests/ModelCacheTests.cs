@@ -204,7 +204,9 @@ public class ModelCacheTests
 	{
 		var shared = await SharedGenerator.GetAsync();
 		var original = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllBytes(Path.Combine(shared.ModelDirectory, "tokenizer.json")))!.AsObject();
-		var copy = System.Text.Json.Nodes.JsonNode.Parse(ChromaTokenizer.Untruncated(File.ReadAllBytes(Path.Combine(shared.ModelDirectory, "tokenizer.json"))))!.AsObject();
+		var untruncated = TokenizerFile.Untruncated(File.ReadAllBytes(Path.Combine(shared.ModelDirectory, "tokenizer.json")));
+		Assert.That(untruncated, Is.Not.Null, "tokenizer.json has a truncation and a padding of its own: the copy is written");
+		var copy = System.Text.Json.Nodes.JsonNode.Parse(untruncated!)!.AsObject();
 		Assert.Multiple(() =>
 		{
 			Assert.That(original["truncation"]?["max_length"]?.GetValue<int>(), Is.EqualTo(128));
