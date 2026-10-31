@@ -1,4 +1,4 @@
-"""The reference of Python for the tests of the hosted models: the same ONNX files with onnxruntime 1.24.4, the version of the package,
+"""The reference of Python for the tests of the hosted models: the same ONNX files with onnxruntime 1.28.0, the version of the package,
 on the texts of tests/ChromaDotNet.Embeddings.Tests/TestData/hosted/cloud-v2.json.
 
 Usage: python -I build/python-hosted-reference.py <Qwen3 fp32 folder> <Qwen3 fp16 folder> <SPLADE folder> [--write | --output <file>]
@@ -27,7 +27,7 @@ import tokenizers
 DATA = Path(__file__).resolve().parent.parent / "tests" / "ChromaDotNet.Embeddings.Tests" / "TestData" / "hosted"
 OUTPUT = DATA / "python-onnx.json"
 # Another processor runs other kernels of ONNX Runtime: a tolerance for them. On the machine that wrote the file the difference is 0;
-# on the runners of the CI, Qwen in float16 differed by up to 4.0e-4, in float32 by up to 2.6e-7.
+# on the runners of the CI, Qwen in float16 differed by up to 4.0e-4, and Qwen in float32, only on Linux x64, not at all.
 DENSE_TOLERANCE = {"qwen-fp32": 1e-4, "qwen-fp16": 1e-3}
 SPARSE_TOLERANCE = 1e-3
 

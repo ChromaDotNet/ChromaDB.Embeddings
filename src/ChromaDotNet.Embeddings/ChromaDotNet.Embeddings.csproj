@@ -24,8 +24,9 @@
 		<PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" PrivateAssets="all" />
 		<!-- The version ElBruno.LocalEmbeddings already resolves: referenced here for the LoggerMessage generator. -->
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
-		<!-- The hosted models run on ONNX Runtime directly, on both targets: the version ElBruno.LocalEmbeddings brings. -->
-		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.24.4" />
+		<!-- The hosted models run on ONNX Runtime directly, on both targets. ElBruno.LocalEmbeddings asks for 1.24.4 or later: on .NET 8
+		     the default model runs on this version too. -->
+		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.28.0" />
 		<!-- The tokenizer of Python: the Rust library tokenizers of Hugging Face, with its native library for each platform. -->
 		<PackageReference Include="Tokenizers.DotNet" Version="$(TokenizersVersion)" />
 		<PackageReference Include="Tokenizers.DotNet.runtime.win-x64" Version="$(TokenizersVersion)" />
@@ -33,11 +34,11 @@
 	</ItemGroup>
 	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
 		<!-- The ONNX model: mean pooling with the attention mask and L2 normalization. It brings Microsoft.Extensions.AI.Abstractions
-		     10.4.1 and ONNX Runtime 1.24.4. -->
+		     10.4.1, and ONNX Runtime 1.24.4, which the reference above raises to 1.28.0. -->
 		<PackageReference Include="ElBruno.LocalEmbeddings" Version="1.6.6" />
 		<PackageReference Include="Tokenizers.DotNet.runtime.linux-x64" Version="$(TokenizersVersion)" />
 		<PackageReference Include="Tokenizers.DotNet.runtime.linux-arm64" Version="$(TokenizersVersion)" />
-		<!-- Kept for the tokenizer, though ONNX Runtime 1.24 has no osx-x64 library: Intel Macs are not supported. -->
+		<!-- Kept for the tokenizer, though ONNX Runtime 1.28 has no osx-x64 library: Intel Macs are not supported. -->
 		<PackageReference Include="Tokenizers.DotNet.runtime.osx-x64" Version="$(TokenizersVersion)" />
 		<PackageReference Include="Tokenizers.DotNet.runtime.osx-arm64" Version="$(TokenizersVersion)" />
 	</ItemGroup>

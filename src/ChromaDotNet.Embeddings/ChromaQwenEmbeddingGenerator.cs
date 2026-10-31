@@ -28,8 +28,8 @@ public sealed class ChromaQwenEmbeddingGenerator : IEmbeddingGenerator<string, E
 
 	/// <summary>
 	/// The most tokens of a text, <c>&lt;|endoftext|&gt;</c> included: a longer text is refused with an <see cref="ArgumentException"/>,
-	/// before any text of the call is computed. Beyond it the attention mask of the export needs more than 4 GiB, which onnxruntime 1.31
-	/// refuses and onnxruntime 1.24 computes until the memory runs out. Chroma Cloud refused texts of 32768 tokens or more. The memory
+	/// before any text of the call is computed. Beyond it the attention mask of the export needs more than 4 GiB, which onnxruntime 1.28
+	/// refuses and onnxruntime 1.24 computed until the memory ran out. Chroma Cloud refused texts of 32768 tokens or more. The memory
 	/// grows with the square of the tokens of a text.
 	/// </summary>
 	public const int MaxTokens = 8192;

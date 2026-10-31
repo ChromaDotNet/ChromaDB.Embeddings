@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace ChromaDotNet.Embeddings.Tests;
 
 // Qwen3-Embedding-0.6B against the vectors Chroma Cloud recorded (TestData/hosted/cloud-v1.json and cloud-v2.json), and against
-// onnxruntime 1.24.4 in Python on the same ONNX files (python-onnx.json, and the vectors of Python on this machine in the CI).
+// onnxruntime 1.28.0 in Python on the same ONNX files (python-onnx.json, and the vectors of Python on this machine in the CI).
 [TestFixture(ChromaQwenVariant.Float16)]
 [TestFixture(ChromaQwenVariant.Float32)]
 public class QwenTests
@@ -77,7 +77,7 @@ public class QwenTests
 		Assert.That(different, Is.Empty);
 	}
 
-	// The token ids of Tokenizers.DotNet are those of tokenizers in Python, and the vectors those of onnxruntime 1.24.4 in Python, as
+	// The token ids of Tokenizers.DotNet are those of tokenizers in Python, and the vectors those of onnxruntime 1.28.0 in Python, as
 	// the machine that wrote python-onnx.json computed them.
 	[Test]
 	public async Task VectorsAreThoseOfOnnxRuntimeInPython()

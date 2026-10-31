@@ -44,7 +44,7 @@ The versions are those of the package graph of this release. The licenses are th
 |---|---|---|---|
 | Tokenizers.DotNet | 1.4.1 | MIT | https://github.com/sappho192/Tokenizers.DotNet |
 | Tokenizers.DotNet.runtime.win-x64, win-arm64 | 1.4.1 | MIT | https://github.com/sappho192/Tokenizers.DotNet |
-| Microsoft.ML.OnnxRuntime, Microsoft.ML.OnnxRuntime.Managed | 1.24.4 | MIT | https://github.com/microsoft/onnxruntime |
+| Microsoft.ML.OnnxRuntime, Microsoft.ML.OnnxRuntime.Managed | 1.28.0 | MIT | https://github.com/microsoft/onnxruntime |
 | Microsoft.Extensions.AI.Abstractions | 10.4.1 | MIT | https://github.com/dotnet/extensions |
 | Microsoft.Extensions.Logging.Abstractions, Microsoft.Extensions.DependencyInjection.Abstractions | 10.0.5 | MIT | https://github.com/dotnet/runtime |
 | System.Diagnostics.DiagnosticSource | 10.0.5 | MIT | https://github.com/dotnet/runtime |
@@ -94,7 +94,7 @@ not in the package.
 
 In `tests/ChromaDotNet.Embeddings.Tests/TestData/hosted`, `cloud-v1.json` and `cloud-v2.json` have the vectors that the embedding
 service of Chroma Cloud, https://embed.trychroma.com/, returned on 25 October 2026 for texts of this repository. `python-onnx.json`
-has the outputs of onnxruntime 1.24.4 in Python (MIT License, https://github.com/microsoft/onnxruntime), with the hosted models
+has the outputs of onnxruntime 1.28.0 in Python (MIT License, https://github.com/microsoft/onnxruntime), with the hosted models
 above, on the same texts.
 
 ## No NOTICE file
