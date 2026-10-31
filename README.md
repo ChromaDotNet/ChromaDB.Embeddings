@@ -65,7 +65,7 @@ It needs no account and no API key.
 | Embedding function | `chroma-cloud-qwen` | `chroma-cloud-splade` |
 | Model | Qwen3-Embedding-0.6B, in the ONNX export of onnx-community | SPLADE, prithivida/Splade_PP_en_v1, in the ONNX export of its repository |
 | Vectors | dense: 1024 dimensions, length 1 | sparse: a weight for some of the 30522 tokens of the vocabulary |
-| Tokens of a text | up to 32768 | up to 512, as in Chroma Cloud; the rest is ignored |
+| Tokens of a text | up to 8192: a longer text is refused | up to 512, as in Chroma Cloud; the rest is ignored |
 | Download | 1.2 GB in float16, the default; 2.4 GB in float32 | 533 MB |
 
 ```csharp
@@ -118,7 +118,7 @@ Its message has the missing files with their addresses and hashes, and the optio
 | `ModelDirectory` | none | A folder with the files, in the layout of the repository: no download, no cache. |
 | `DownloadBaseUri` | `https://huggingface.co/` | A mirror of Hugging Face, with the same files. |
 | `IntraOpNumThreads` | half of the processors, at least 1 | The threads of ONNX Runtime for a text. |
-| `Logger` | none | The download, the load and, for Qwen, the texts truncated. |
+| `Logger` | none | The download and the load. |
 | `Variant`, Qwen only | `Float16` | `Float32` downloads and runs the weights in float32. |
 | `Task` and `Instructions`, Qwen only | `nl_to_code` and the instructions of the Python client | The instructions of the documents and of the queries. |
 | `IncludeTokens`, SPLADE only | false | The token of each index in `Labels`. |
@@ -130,7 +130,9 @@ Qwen3-Embedding, as the service of Chroma Cloud:
 - the tokenizer of `tokenizer.json`, which ends each text with `<|endoftext|>`;
 - a query as `Instruct: {instruction}\nQuery:{text}`, with no space after `Query:`;
 - each text alone, without padding;
-- a text of more than 32768 tokens truncated, with `<|endoftext|>` at the end; the logger says so;
+- a text of more than 8192 tokens refused with an `ArgumentException`, before any text of the call is computed: beyond 8192 the
+  attention mask of the export needs more than 4 GiB, which onnxruntime 1.31 refuses and onnxruntime 1.24 computes until the
+  memory runs out. Chroma Cloud refused texts of 32768 tokens or more;
 - the last hidden state of the last token, normalized to length 1.
 
 SPLADE, as the service of Chroma Cloud:

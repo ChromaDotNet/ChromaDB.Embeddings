@@ -73,6 +73,6 @@ public sealed class ChromaQwenEmbeddingOptions
 	/// <summary>The threads of ONNX Runtime for a text. The default is half of <see cref="Environment.ProcessorCount"/>, at least 1.</summary>
 	public int? IntraOpNumThreads { get; set; }
 
-	/// <summary>Receives the download, the load of the model, and the texts truncated.</summary>
+	/// <summary>Receives the download and the load of the model.</summary>
 	public ILogger? Logger { get; set; }
 }
