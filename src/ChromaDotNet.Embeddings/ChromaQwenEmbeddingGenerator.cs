@@ -11,8 +11,8 @@ namespace ChromaDotNet.Embeddings;
 /// instruction of the documents of the task; <see cref="Queries"/> embeds queries, with the instruction of the queries.
 /// </summary>
 /// <remarks>
-/// Create it with <see cref="CreateAsync"/>. Each text is computed alone, without truncation up to <see cref="MaxTokens"/> tokens, on
-/// the CPU in the calling thread; concurrent calls run one after the other. The embedding is the last hidden state of the last token,
+/// Create it with <see cref="CreateAsync"/>. Each text is computed alone, up to <see cref="MaxTokens"/> tokens, on the CPU in the
+/// calling thread; concurrent calls run one after the other. The embedding is the last hidden state of the last token,
 /// normalized to length 1.
 /// </remarks>
 public sealed class ChromaQwenEmbeddingGenerator : IEmbeddingGenerator<string, Embedding<float>>
@@ -27,10 +27,12 @@ public sealed class ChromaQwenEmbeddingGenerator : IEmbeddingGenerator<string, E
 	public const int Dimensions = 1024;
 
 	/// <summary>
-	/// The tokens of a text the model reads, <c>&lt;|endoftext|&gt;</c> included: its <c>max_position_embeddings</c>. A longer text is
-	/// truncated, and the logger says so. The memory grows with the square of the tokens of a text.
+	/// The most tokens of a text, <c>&lt;|endoftext|&gt;</c> included: a longer text is refused with an <see cref="ArgumentException"/>,
+	/// before any text of the call is computed. Beyond it the attention mask of the export needs more than 4 GiB, which onnxruntime 1.28
+	/// refuses and onnxruntime 1.24 computed until the memory ran out. Chroma Cloud refused texts of 32768 tokens or more. The memory
+	/// grows with the square of the tokens of a text.
 	/// </summary>
-	public const int MaxTokens = 32768;
+	public const int MaxTokens = 8192;
 
 	/// <summary>The task of the collections of Chroma Cloud, for natural language queries on code and documents.</summary>
 	public const string DefaultTask = "nl_to_code";
@@ -42,16 +44,14 @@ public sealed class ChromaQwenEmbeddingGenerator : IEmbeddingGenerator<string, E
 	private readonly QwenOnnxModel _model;
 	private readonly string _documentsInstruction;
 	private readonly string _queryInstruction;
-	private readonly ILogger? _logger;
 	private readonly EmbeddingGeneratorMetadata _metadata = new("chroma", providerUri: null, defaultModelId: ModelId, defaultModelDimensions: Dimensions);
 	private readonly object _gate = new();
 	private bool _disposed;
 
-	private ChromaQwenEmbeddingGenerator(TruncatingTokenizer tokenizer, QwenOnnxModel model, ChromaQwenVariant variant, string? task, IReadOnlyDictionary<string, ChromaQwenInstructions> instructions, ILogger? logger, string modelDirectory, int intraOpNumThreads)
+	private ChromaQwenEmbeddingGenerator(TruncatingTokenizer tokenizer, QwenOnnxModel model, ChromaQwenVariant variant, string? task, IReadOnlyDictionary<string, ChromaQwenInstructions> instructions, string modelDirectory, int intraOpNumThreads)
 	{
 		_tokenizer = tokenizer;
 		_model = model;
-		_logger = logger;
 		Variant = variant;
 		Task = task;
 		Instructions = instructions;
@@ -145,7 +145,7 @@ public sealed class ChromaQwenEmbeddingGenerator : IEmbeddingGenerator<string, E
 		}
 		if (logger is not null)
 			Log.Loaded(logger, directory, threads, stopwatch.ElapsedMilliseconds);
-		return new ChromaQwenEmbeddingGenerator(tokenizer, onnx, variant, task, instructions, logger, directory, threads);
+		return new ChromaQwenEmbeddingGenerator(tokenizer, onnx, variant, task, instructions, directory, threads);
 	}
 
 	/// <summary>The embeddings of documents, with the instruction of the documents of the task.</summary>
@@ -206,13 +206,19 @@ public sealed class ChromaQwenEmbeddingGenerator : IEmbeddingGenerator<string, E
 		lock (_gate)
 		{
 			Compat.ThrowIfDisposed(_disposed, this);
+			// Every text is checked before the first one is computed: a call with a text too long computes nothing.
+			var encoded = new long[texts.Count][];
 			for (var i = 0; i < texts.Count; i++)
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 				var text = texts[i] ?? throw new ArgumentException($"The text at {i} is null.", nameof(values));
-				var ids = _tokenizer.Encode(Format(instruction, text), out var count);
-				if (count > ids.Length && _logger is not null)
-					Log.Truncated(_logger, i, count, ids.Length);
+				encoded[i] = _tokenizer.Encode(Format(instruction, text), out var count);
+				if (count > MaxTokens)
+					throw new ArgumentException($"The text at {i} has {count} tokens, with its instruction and <|endoftext|>: {ModelId} computes at most {MaxTokens} tokens. Split the text into shorter ones.", nameof(values));
+			}
+			foreach (var ids in encoded)
+			{
+				cancellationToken.ThrowIfCancellationRequested();
 				tokens += ids.Length;
 				var vector = _model.Embed(ids, cancellationToken);
 				embeddings.Add(new Embedding<float>(vector) { ModelId = ModelId, CreatedAt = DateTimeOffset.UtcNow });

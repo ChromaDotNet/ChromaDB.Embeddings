@@ -65,7 +65,7 @@ It needs no account and no API key.
 | Embedding function | `chroma-cloud-qwen` | `chroma-cloud-splade` |
 | Model | Qwen3-Embedding-0.6B, in the ONNX export of onnx-community | SPLADE, prithivida/Splade_PP_en_v1, in the ONNX export of its repository |
 | Vectors | dense: 1024 dimensions, length 1 | sparse: a weight for some of the 30522 tokens of the vocabulary |
-| Tokens of a text | up to 32768 | up to 512, as in Chroma Cloud; the rest is ignored |
+| Tokens of a text | up to 8192: a longer text is refused | up to 512, as in Chroma Cloud; the rest is ignored |
 | Download | 1.2 GB in float16, the default; 2.4 GB in float32 | 533 MB |
 
 ```csharp
@@ -118,7 +118,7 @@ Its message has the missing files with their addresses and hashes, and the optio
 | `ModelDirectory` | none | A folder with the files, in the layout of the repository: no download, no cache. |
 | `DownloadBaseUri` | `https://huggingface.co/` | A mirror of Hugging Face, with the same files. |
 | `IntraOpNumThreads` | half of the processors, at least 1 | The threads of ONNX Runtime for a text. |
-| `Logger` | none | The download, the load and, for Qwen, the texts truncated. |
+| `Logger` | none | The download and the load. |
 | `Variant`, Qwen only | `Float16` | `Float32` downloads and runs the weights in float32. |
 | `Task` and `Instructions`, Qwen only | `nl_to_code` and the instructions of the Python client | The instructions of the documents and of the queries. |
 | `IncludeTokens`, SPLADE only | false | The token of each index in `Labels`. |
@@ -130,7 +130,9 @@ Qwen3-Embedding, as the service of Chroma Cloud:
 - the tokenizer of `tokenizer.json`, which ends each text with `<|endoftext|>`;
 - a query as `Instruct: {instruction}\nQuery:{text}`, with no space after `Query:`;
 - each text alone, without padding;
-- a text of more than 32768 tokens truncated, with `<|endoftext|>` at the end; the logger says so;
+- a text of more than 8192 tokens refused with an `ArgumentException`, before any text of the call is computed: beyond 8192 the
+  attention mask of the export needs more than 4 GiB, which onnxruntime 1.28 refuses and onnxruntime 1.24 computed until the
+  memory ran out. Chroma Cloud refused texts of 32768 tokens or more;
 - the last hidden state of the last token, normalized to length 1.
 
 SPLADE, as the service of Chroma Cloud:
@@ -158,7 +160,7 @@ Other texts can differ more than these.
 Each term that SPLADE gives here is also in the vector of Chroma Cloud.
 Chroma Cloud gives the SPLADE values in float16, and this package in float32.
 Chroma Cloud itself gives values about 0.01 apart to a text alone and to the same text in a batch.
-Against onnxruntime 1.24.4 in Python, with the same files, the vectors are the same bit for bit, on the machine that wrote the
+Against onnxruntime 1.28.0 in Python, with the same files, the vectors are the same bit for bit, on the machine that wrote the
 reference.
 On other processors ONNX Runtime can run other kernels, so the tests allow a difference of 1e-4 for a value of Qwen in float32,
 and of 1e-3 for Qwen in float16 and for SPLADE.
@@ -170,29 +172,33 @@ on Linux x64, the only runner with its files.
 ### Their speed
 
 In our tests, these are the times of one text at a time, on the CPU, with the files already downloaded.
-The machine is a 13th Gen Intel Core i5-13600KF with 20 logical processors, on Windows 11 and .NET 8, so 10 threads by default.
-Before each run, other processes used 19% to 27% of its CPU.
+The machine is an Azure VM Standard_D8ads_v6: 8 logical processors of an AMD EPYC 9V74, 32 GB, Ubuntu 24.04 and .NET 8, so 4
+threads by default.
+Nothing else ran on it: before each run, its CPU was at 0% to 5%.
 Each value is the median of 5 runs, each in its own process.
 
-| | Qwen in float16 | Qwen in float32 | SPLADE |
+| On a Standard_D8ads_v6 | Qwen in float16 | Qwen in float32 | SPLADE |
 |---|---|---|---|
-| Load | 2.2 s | 2.0 s | 0.7 s |
-| A query of the tests: 28 to 38 tokens with the instruction of Qwen, 7 to 16 for SPLADE | 69 ms | 69 ms | 12 ms |
-| A document of 106 tokens for Qwen, 108 for SPLADE | 181 ms | 175 ms | 42 ms |
-| A document of 661 tokens for Qwen, truncated to 512 for SPLADE | 1.3 s | 1.2 s | 194 ms |
-| A document of 3322 tokens for Qwen, truncated to 512 for SPLADE | 11.7 s | 11.4 s | 195 ms |
-| Peak working set of the process | 4.3 GB | 4.8 GB | 0.79 GB |
+| Load | 2.1 s | 2.1 s | 0.96 s |
+| A query of the tests: 28 to 38 tokens with the instruction of Qwen, 7 to 16 for SPLADE | 98 ms | 95 ms | 15 ms |
+| A document of 106 tokens for Qwen, 108 for SPLADE | 283 ms | 272 ms | 70 ms |
+| A document of 661 tokens for Qwen, truncated to 512 for SPLADE | 2.0 s | 1.9 s | 337 ms |
+| A document of 3322 tokens for Qwen, truncated to 512 for SPLADE | 18.8 s | 17.4 s | 334 ms |
+| Peak working set of the process | 4.3 GB | 4.9 GB | 0.83 GB |
 
 Qwen is slow to index many long documents: the time of each token grows with the length of the text.
 The memory of its attention grows with the square of the tokens of a text: in the ONNX export, the mask of the attention has a value
 for each pair of tokens.
-In our tests, the peak of Qwen in float16 was 4.3 GB, with texts of up to 3322 tokens.
+On the Standard_D8ads_v6, the peak of Qwen in float16 was 4.3 GB, with texts of up to 3322 tokens.
 On a document of about 100 tokens, SPLADE takes about a quarter of the time of Qwen.
 SPLADE reads 512 tokens at most, so a longer document takes it no more time.
-In float16, Qwen downloads half the bytes of float32, and takes up to 6% more time for a text.
-The load took longer in the first of the 5 runs: 2.5 s for Qwen in float32, 1.5 s for SPLADE.
-For Qwen in float16, onnxruntime 1.24.4 in Python with the same files takes the same times, within the differences between two runs.
-So does a NativeAOT build.
+In float16, Qwen downloads half the bytes of float32, and takes up to 8% more time for a text.
+On the same VM, for Qwen in float16, onnxruntime 1.28.0 in Python with the same files takes the same times up to 661 tokens,
+and 19.1 s on the document of 3322 tokens.
+A NativeAOT build takes the same times, within the differences between runs: on the document of 3322 tokens, 18.2 s and 19.0 s,
+against 18.0 s to 19.0 s in the 5 runs of the table.
+The first load after the start of the VM took longer: 11.6 s for Qwen in float16, 15.7 s in float32 and 3.7 s for SPLADE, with
+the files not yet in the cache of the disk.
 
 ## Platforms
 
@@ -206,7 +212,7 @@ So does a NativeAOT build.
 | 32-bit processes | no | no |
 
 Intel Macs are not supported.
-ONNX Runtime has no osx-x64 library from version 1.24 on, and this package uses 1.24.
+ONNX Runtime has no osx-x64 library from version 1.24 on, and this package uses 1.28.
 
 32-bit processes are not supported.
 ONNX Runtime has no win-x86 library from version 1.23 on.
@@ -265,7 +271,7 @@ It does what `ONNXMiniLM_L6_V2` of chromadb 1.5.9 does:
 The tests compare 135 texts with Python: empty texts, accents, emoji, CJK and other scripts, symbols, control characters, texts of
 254 to 1000 tokens, and short documents.
 The token ids are the same for all of them.
-On these texts, against chromadb 1.5.9 with onnxruntime 1.31.0, the largest difference of a component is 1.9e-7 on x64 and 2.4e-7 on
+On these texts, against chromadb 1.5.9 with onnxruntime 1.31.0, the largest difference of a component is 1.7e-7 on x64 and 2.0e-7 on
 arm64.
 The tests allow 1e-6: other texts can differ more than these.
 The five nearest neighbours of each text are the same.
@@ -332,7 +338,7 @@ A model without its files is skipped.
 tests fail.
 `CHROMADOTNET_EMBEDDINGS_HOSTED_CACHE` takes the files from another cache, and `CHROMADOTNET_EMBEDDINGS_HOSTED_MODELS` from a
 folder with a folder for each repository, named like `onnx-community__Qwen3-Embedding-0.6B-ONNX`.
-`build/python-hosted-reference.py`, with onnxruntime 1.24.4, computes the vectors of the hosted models in Python again, and compares
+`build/python-hosted-reference.py`, with onnxruntime 1.28.0, computes the vectors of the hosted models in Python again, and compares
 them with the reference.
 With `--output <file>` it writes those of this machine instead, and `CHROMADOTNET_EMBEDDINGS_HOSTED_PYTHON=<file>` gives them to the
 tests, which require the vectors of .NET to be the same, bit for bit.

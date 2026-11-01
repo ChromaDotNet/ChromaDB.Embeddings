@@ -7,9 +7,9 @@ namespace ChromaDotNet.Embeddings.Tests;
 [TestFixture]
 public class ParityTests
 {
-	// The largest difference of a component measured on the 135 texts was 1.863e-07, about 1.6 times the float32 epsilon (1.19e-07),
-	// from the order of the sums in ONNX Runtime 1.24.4 here and 1.31.0 in Python. 1e-6 leaves room for other CPUs and thread counts,
-	// and is still far below a difference of meaning: the lowest cosine measured is 0.99999994.
+	// The largest difference of a component measured on the 135 texts was 1.527e-07 on .NET 8 and 1.714e-07 on .NET Framework, about 1.4
+	// times the float32 epsilon (1.19e-07), from the order of the sums in ONNX Runtime 1.28.0 here and 1.31.0 in Python. 1e-6 leaves room
+	// for other CPUs and thread counts, and is still far below a difference of meaning: 1 - cosine measured is at most 4.6e-13.
 	private const float Tolerance = 1e-6f;
 
 	[Test]

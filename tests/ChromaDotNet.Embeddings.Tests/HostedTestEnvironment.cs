@@ -160,7 +160,7 @@ public sealed class HostedGenerators
 	}
 }
 
-// The recordings of Chroma Cloud (TestData/hosted/cloud-v1.json and cloud-v2.json) and the reference of Python with onnxruntime 1.24.4
+// The recordings of Chroma Cloud (TestData/hosted/cloud-v1.json and cloud-v2.json) and the reference of Python with onnxruntime 1.28.0
 // (python-onnx.json, written by build/python-hosted-reference.py), with the vectors of Python on this machine when the run has them.
 internal static class HostedReference
 {

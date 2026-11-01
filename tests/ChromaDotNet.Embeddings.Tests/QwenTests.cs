@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace ChromaDotNet.Embeddings.Tests;
 
 // Qwen3-Embedding-0.6B against the vectors Chroma Cloud recorded (TestData/hosted/cloud-v1.json and cloud-v2.json), and against
-// onnxruntime 1.24.4 in Python on the same ONNX files (python-onnx.json, and the vectors of Python on this machine in the CI).
+// onnxruntime 1.28.0 in Python on the same ONNX files (python-onnx.json, and the vectors of Python on this machine in the CI).
 [TestFixture(ChromaQwenVariant.Float16)]
 [TestFixture(ChromaQwenVariant.Float32)]
 public class QwenTests
@@ -77,7 +77,7 @@ public class QwenTests
 		Assert.That(different, Is.Empty);
 	}
 
-	// The token ids of Tokenizers.DotNet are those of tokenizers in Python, and the vectors those of onnxruntime 1.24.4 in Python, as
+	// The token ids of Tokenizers.DotNet are those of tokenizers in Python, and the vectors those of onnxruntime 1.28.0 in Python, as
 	// the machine that wrote python-onnx.json computed them.
 	[Test]
 	public async Task VectorsAreThoseOfOnnxRuntimeInPython()
@@ -173,19 +173,23 @@ public class QwenTests
 		Assert.That(await generator.GenerateAsync(Array.Empty<string>()), Is.Empty);
 	}
 
-	// A text of more than 32,768 tokens is truncated as tokenizers truncates one sequence: the first tokens, then <|endoftext|>.
+	// A text of more than 8192 tokens, <|endoftext|> included, is refused before any text of the call is computed: beyond it the
+	// attention mask of the export needs more than 4 GiB. A text of 8192 tokens is computed; the test does not run one, as it takes
+	// about 12 GB.
 	[Test]
-	public async Task LongTextsAreTruncatedAtTheEndOfText()
+	public async Task LongTextsAreRefused()
 	{
+		Assert.That(ChromaQwenEmbeddingGenerator.MaxTokens, Is.EqualTo(8192));
 		var generator = await HostedGenerators.QwenAsync(_variant);
-		var text = string.Concat(Enumerable.Repeat("lemon ", 40_000));
-		var ids = generator.Tokenizer.Encode(text, out var tokens);
+		var tooLong = string.Concat(Enumerable.Repeat("lemon ", 8192));
+		generator.Tokenizer.Encode(tooLong, out var tokens);
+		Assert.That(tokens, Is.GreaterThan(ChromaQwenEmbeddingGenerator.MaxTokens));
+		var e = Assert.ThrowsAsync<ArgumentException>(() => generator.GenerateAsync(["A sour lemon", tooLong]));
+		Assert.That(e!.Message, Does.Contain($"The text at 1 has {tokens} tokens").And.Contain("at most 8192 tokens"));
+		Assert.ThrowsAsync<ArgumentException>(() => generator.Queries.GenerateAsync([tooLong]));
 		Assert.Multiple(() =>
 		{
-			Assert.That(tokens, Is.GreaterThan(ChromaQwenEmbeddingGenerator.MaxTokens));
-			Assert.That(ids, Has.Length.EqualTo(ChromaQwenEmbeddingGenerator.MaxTokens));
 			Assert.That(generator.Tokenizer.EndId, Is.EqualTo(151643), "<|endoftext|>");
-			Assert.That(ids[ids.Length - 1], Is.EqualTo(151643));
 			Assert.That(generator.Tokenizer.Encode("lemon", out _).Last(), Is.EqualTo(151643));
 		});
 	}
