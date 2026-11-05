@@ -42,13 +42,22 @@ The versions are those of the package graph of this release. The licenses are th
 
 | Package | Version | License | Project |
 |---|---|---|---|
+| ElBruno.LocalEmbeddings | 1.6.7 | MIT | https://github.com/elbruno/elbruno.localembeddings |
+| ElBruno.HuggingFace.Downloader | 1.6.1 | MIT | https://github.com/elbruno/ElBruno.HuggingFace.Downloader |
 | Tokenizers.DotNet | 1.4.1 | MIT | https://github.com/sappho192/Tokenizers.DotNet |
 | Tokenizers.DotNet.runtime.win-x64, win-arm64 | 1.4.1 | MIT | https://github.com/sappho192/Tokenizers.DotNet |
 | Microsoft.ML.OnnxRuntime, Microsoft.ML.OnnxRuntime.Managed | 1.28.0 | MIT | https://github.com/microsoft/onnxruntime |
+| Microsoft.ML.Tokenizers | 2.0.0 | MIT | https://github.com/dotnet/machinelearning |
+| Google.Protobuf | 3.30.2 | BSD-3-Clause | https://github.com/protocolbuffers/protobuf |
 | Microsoft.Extensions.AI.Abstractions | 10.4.1 | MIT | https://github.com/dotnet/extensions |
-| Microsoft.Extensions.Logging.Abstractions, Microsoft.Extensions.DependencyInjection.Abstractions | 10.0.5 | MIT | https://github.com/dotnet/runtime |
+| Microsoft.Extensions.Configuration, .Abstractions, .Binder | 10.0.5 | MIT | https://github.com/dotnet/runtime |
+| Microsoft.Extensions.DependencyInjection, .Abstractions | 10.0.5 | MIT | https://github.com/dotnet/runtime |
+| Microsoft.Extensions.Http | 10.0.5 | MIT | https://github.com/dotnet/runtime |
+| Microsoft.Extensions.Logging, .Abstractions | 10.0.5 | MIT | https://github.com/dotnet/runtime |
+| Microsoft.Extensions.Options, .ConfigurationExtensions | 10.0.5 | MIT | https://github.com/dotnet/runtime |
+| Microsoft.Extensions.Primitives | 10.0.5 | MIT | https://github.com/dotnet/runtime |
 | System.Diagnostics.DiagnosticSource | 10.0.5 | MIT | https://github.com/dotnet/runtime |
-| System.Text.Json, System.Text.Encodings.Web, System.IO.Pipelines | 10.0.4 | MIT | https://github.com/dotnet/runtime |
+| System.Numerics.Tensors | 10.0.5 | MIT | https://github.com/dotnet/runtime |
 | System.Runtime.CompilerServices.Unsafe | 6.1.2 | MIT | https://github.com/dotnet/maintenance-packages |
 
 The native libraries of Tokenizers.DotNet contain the tokenizers library of Hugging Face, version 0.22.2, under the Apache License
@@ -59,19 +68,9 @@ in its packages.
 
 | Package | Version | License | Project |
 |---|---|---|---|
-| ElBruno.LocalEmbeddings | 1.6.6 | MIT | https://github.com/elbruno/elbruno.localembeddings |
-| ElBruno.HuggingFace.Downloader | 0.6.0 | MIT | https://github.com/elbruno/ElBruno.HuggingFace.Downloader |
 | Tokenizers.DotNet.runtime.linux-x64, linux-arm64, osx-x64, osx-arm64 | 1.4.1 | MIT | https://github.com/sappho192/Tokenizers.DotNet |
-| Microsoft.ML.Tokenizers | 2.0.0 | MIT | https://github.com/dotnet/machinelearning |
-| Google.Protobuf | 3.30.2 | BSD-3-Clause | https://github.com/protocolbuffers/protobuf |
-| Microsoft.Extensions.Configuration, .Abstractions, .Binder | 10.0.5 | MIT | https://github.com/dotnet/runtime |
-| Microsoft.Extensions.DependencyInjection | 10.0.5 | MIT | https://github.com/dotnet/runtime |
 | Microsoft.Extensions.Diagnostics, .Abstractions | 10.0.5 | MIT | https://github.com/dotnet/runtime |
-| Microsoft.Extensions.Http | 10.0.5 | MIT | https://github.com/dotnet/runtime |
-| Microsoft.Extensions.Logging | 10.0.5 | MIT | https://github.com/dotnet/runtime |
-| Microsoft.Extensions.Options, .ConfigurationExtensions | 10.0.5 | MIT | https://github.com/dotnet/runtime |
-| Microsoft.Extensions.Primitives | 10.0.5 | MIT | https://github.com/dotnet/runtime |
-| System.Numerics.Tensors | 10.0.5 | MIT | https://github.com/dotnet/runtime |
+| System.Text.Json, System.Text.Encodings.Web, System.IO.Pipelines | 10.0.4 | MIT | https://github.com/dotnet/runtime |
 | System.Memory | 4.5.5 | MIT | https://github.com/dotnet/corefx |
 
 ### .NET Framework 4.6.2 and later
@@ -79,7 +78,9 @@ in its packages.
 | Package | Version | License | Project |
 |---|---|---|---|
 | SharpZipLib | 1.4.2 | MIT | https://github.com/icsharpcode/SharpZipLib |
-| Microsoft.Bcl.AsyncInterfaces | 10.0.5 | MIT | https://github.com/dotnet/runtime |
+| Microsoft.Bcl.AsyncInterfaces, Microsoft.Bcl.Memory, Microsoft.Bcl.Numerics | 10.0.5 | MIT | https://github.com/dotnet/runtime |
+| Microsoft.Bcl.HashCode | 6.0.0 | MIT | https://github.com/dotnet/maintenance-packages |
+| System.Text.Json, System.Text.Encodings.Web, System.IO.Pipelines | 10.0.5 | MIT | https://github.com/dotnet/runtime |
 | System.Buffers | 4.6.1 | MIT | https://github.com/dotnet/maintenance-packages |
 | System.Memory | 4.6.3 | MIT | https://github.com/dotnet/maintenance-packages |
 | System.Numerics.Vectors | 4.6.1 | MIT | https://github.com/dotnet/maintenance-packages |
