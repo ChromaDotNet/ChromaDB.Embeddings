@@ -222,7 +222,7 @@ An AnyCPU application runs as a 64-bit process on 64-bit Windows.
 The build of a 32-bit application fails with a message that says so, on .NET Framework and on .NET 8 and later.
 In a 32-bit process, `CreateAsync` throws a `PlatformNotSupportedException` before any download.
 .NET Framework does not load native libraries from `runtimes/`.
-So the package copies `hf_tokenizers.dll` and `onnxruntime.dll` next to the application at the build.
+So the package copies `hf_tokenizers.dll` next to the application at the build, and ElBruno.LocalEmbeddings copies `onnxruntime.dll`.
 The generators of the hosted models run on the same platforms.
 
 On .NET 8, the library is compatible with trimming and NativeAOT.
@@ -294,11 +294,11 @@ An application that creates `OrtEnv` before keeps its own level.
 
 - [Tokenizers.DotNet](https://www.nuget.org/packages/Tokenizers.DotNet), by Taein Kim: the tokenizers library of Hugging Face,
   the one of Python. [GitHub](https://github.com/sappho192/Tokenizers.DotNet)
-- [ElBruno.LocalEmbeddings](https://www.nuget.org/packages/ElBruno.LocalEmbeddings), by Bruno Capuano, on .NET 8 and later.
-  Its `OnnxEmbeddingModel` runs the model, with the mean pooling and the L2 normalization.
+- [ElBruno.LocalEmbeddings](https://www.nuget.org/packages/ElBruno.LocalEmbeddings), by Bruno Capuano, on .NET 8 and later and
+  on .NET Framework. Its `OnnxEmbeddingModel` runs the model, with the mean pooling and the L2 normalization.
   [GitHub](https://github.com/elbruno/elbruno.localembeddings)
-- [ONNX Runtime](https://www.nuget.org/packages/Microsoft.ML.OnnxRuntime), directly on .NET Framework, which
-  ElBruno.LocalEmbeddings does not target, and for the hosted models. [GitHub](https://github.com/microsoft/onnxruntime)
+- [ONNX Runtime](https://www.nuget.org/packages/Microsoft.ML.OnnxRuntime), directly for the hosted models.
+  [GitHub](https://github.com/microsoft/onnxruntime)
 
 ## Licenses
 

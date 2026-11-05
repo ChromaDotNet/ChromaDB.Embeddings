@@ -1,7 +1,5 @@
 using System.Diagnostics;
-#if NET
 using ElBruno.LocalEmbeddings;
-#endif
 using Microsoft.Extensions.AI;
 
 namespace ChromaDotNet.Embeddings;
