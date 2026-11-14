@@ -1,0 +1,13 @@
+# The image of src/ChromaDotNet.Embeddings.Server needs only the sources and the files of the build: not artifacts/, with the models
+# and the caches, nor the tests.
+*
+!global.json
+!nuget.config
+!Directory.Build.props
+!README.md
+!THIRD-PARTY-NOTICES.md
+!LICENSE
+!assets/icon.png
+!src/
+src/**/bin/
+src/**/obj/
