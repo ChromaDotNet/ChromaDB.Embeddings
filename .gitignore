@@ -3,3 +3,4 @@ obj/
 artifacts/
 *.user
 .vs/
+build/server-clients/node_modules/

@@ -5,7 +5,8 @@
 # Python computes the vectors of the test texts again with chromadb, and those of the hosted models with onnxruntime, and compares them
 # with the files of the tests. A version tag, like
 # v1.0.0-preview.1, also publishes: the GitHub release with the packages and their build provenance, then the packages on NuGet, with
-# trusted publishing, in the environment nuget.
+# trusted publishing, in the environment nuget. The service, ChromaDotNet.Embeddings.Server, is tested on Linux x64 and arm64: through
+# HTTP, from its tool package with the clients of Python and JavaScript, and in its image.
 name: CI
 
 on:
@@ -201,6 +202,88 @@ jobs:
         run: |
           artifacts/venv-hosted/bin/python -I build/python-hosted-reference.py artifacts/hosted-models/Qwen3-Embedding-0.6B/fp32 \
             artifacts/hosted-models/Qwen3-Embedding-0.6B/fp16 artifacts/hosted-models/Splade_PP_en_v1
+
+  server:
+    name: Service on ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+      - name: Cache of Qwen3-Embedding-0.6B in float16
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: artifacts/hosted-models/Qwen3-Embedding-0.6B/fp16
+          key: hosted-qwen-fp16-${{ hashFiles('build/fetch-hosted-models.sh') }}
+          enableCrossOsArchive: true
+      - name: Cache of SPLADE
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: artifacts/hosted-models/Splade_PP_en_v1
+          key: hosted-splade-${{ hashFiles('build/fetch-hosted-models.sh') }}
+          enableCrossOsArchive: true
+      - name: The hosted models, from Hugging Face
+        run: bash build/fetch-hosted-models.sh qwen-fp16 splade
+      # The requests Chroma Cloud recorded, through HTTP, against its vectors; the limits, the key and the queue.
+      - name: Tests of the service
+        env:
+          CHROMADOTNET_EMBEDDINGS_HOSTED: qwen-fp16,splade
+        run: dotnet test tests/ChromaDotNet.Embeddings.Server.Tests -c Release --logger "console;verbosity=normal"
+      - name: The tool, from its package
+        run: |
+          dotnet pack src/ChromaDotNet.Embeddings.Server -c Release -o artifacts/server-package
+          dotnet tool install ChromaDotNet.Embeddings.Server --tool-path artifacts/server-tool --add-source artifacts/server-package --prerelease
+          artifacts/server-tool/chromadotnet-embed --Embeddings:CacheDirectory="$PWD/artifacts/hosted-models" --Embeddings:Offline=true \
+            > artifacts/server-tool.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8080/healthz && break; sleep 1; done
+          curl -sf http://127.0.0.1:8080/healthz
+      # The clients of Chroma with CHROMA_EMBED_URL, against the vectors of Chroma Cloud: Python in a collection of Chroma 1.5.9, and
+      # JavaScript. The hashed requirements of chromadb are those of Linux x64.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        if: matrix.runner == 'ubuntu-24.04'
+        with:
+          python-version: '3.12'
+      - name: The Python client of chromadb 1.5.9
+        if: matrix.runner == 'ubuntu-24.04'
+        env:
+          CHROMA_EMBED_URL: http://127.0.0.1:8080
+          CHROMA_API_KEY: not-needed-on-loopback
+        run: |
+          python3 -m venv artifacts/venv
+          artifacts/venv/bin/python -m pip install --quiet --require-hashes -r build/python-reference-requirements.txt
+          artifacts/venv/bin/python -I build/server-clients/python_client_check.py tests/ChromaDotNet.Embeddings.Tests/TestData/hosted/cloud-v2.json
+      - name: The JavaScript clients
+        if: matrix.runner == 'ubuntu-24.04'
+        env:
+          CHROMA_EMBED_URL: http://127.0.0.1:8080
+          CHROMA_API_KEY: not-needed-on-loopback
+        working-directory: build/server-clients
+        run: |
+          node --version
+          npm ci --ignore-scripts
+          node js_client_check.mjs ../../tests/ChromaDotNet.Embeddings.Tests/TestData/hosted/cloud-v2.json
+      - name: Log of the tool
+        if: always()
+        run: cat artifacts/server-tool.log || true
+      # The image of this architecture: without a key it does not start; with one, it computes with the models of the cache.
+      - name: The image
+        run: |
+          docker build -f src/ChromaDotNet.Embeddings.Server/Dockerfile -t embeddings-server:ci .
+          docker images embeddings-server:ci
+          if docker run --rm embeddings-server:ci; then echo "the image started with no key" >&2; exit 1; fi
+          docker run -d --name embeddings-server -p 127.0.0.1:8081:8080 -e Embeddings__ApiKey=ci-key -e Embeddings__Offline=true \
+            -v "$PWD/artifacts/hosted-models:/data:ro" embeddings-server:ci
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8081/healthz && break; sleep 1; done
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8081/embed_sparse -d '{"texts":["a"]}' -H 'Content-Type: application/json')" = 401
+          curl -sf -X POST http://127.0.0.1:8081/ -H 'Content-Type: application/json' -H 'x-chroma-token: ci-key' \
+            -d '{"instructions":"","texts":["def add(a, b): return a + b"]}' | python3 -c "import json, sys; v = json.load(sys.stdin)['embeddings'][0]; assert len(v) == 1024; print('1024 dimensions')"
+          docker logs embeddings-server
 
   publish:
     name: Publish the preview
