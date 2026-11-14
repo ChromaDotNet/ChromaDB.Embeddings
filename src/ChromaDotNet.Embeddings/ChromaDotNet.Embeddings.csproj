@@ -18,6 +18,8 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<InternalsVisibleTo Include="ChromaDotNet.Embeddings.Tests" />
+		<InternalsVisibleTo Include="ChromaDotNet.Embeddings.Server" />
+		<InternalsVisibleTo Include="ChromaDotNet.Embeddings.Server.Tests" />
 	</ItemGroup>
 	<ItemGroup>
 		<!-- The public API, checked at build: the same files for both targets. -->
