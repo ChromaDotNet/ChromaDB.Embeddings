@@ -17,6 +17,11 @@
 	<ItemGroup>
 		<InternalsVisibleTo Include="ChromaDotNet.Embeddings.Server.Tests" />
 	</ItemGroup>
+	<ItemGroup>
+		<!-- The page of the service on NuGet, in place of the README of the repository. -->
+		<None Remove="$(MSBuildThisFileDirectory)..\..\README.md" />
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 	<!-- ONNX Runtime brings its libraries for iOS and Android too, 100 MB of the tool: a service runs on Windows, Linux and macOS. -->
 	<Target Name="LeaveOutMobileLibraries" AfterTargets="ComputeResolvedFilesToPublishList">
 		<ItemGroup>
