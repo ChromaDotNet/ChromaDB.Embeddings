@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Description>A service that computes chroma-cloud-qwen and chroma-cloud-splade as the embedding service of Chroma Cloud does, with the same requests and responses, for the clients of Chroma with CHROMA_EMBED_URL. It runs Qwen3-Embedding-0.6B and SPLADE with ChromaDotNet.Embeddings, on the CPU.</Description>
+		<PackageTags>$(PackageTags) qwen splade server dotnet-tool</PackageTags>
+		<PackAsTool>true</PackAsTool>
+		<ToolCommandName>chromadotnet-embed</ToolCommandName>
+		<InvariantGlobalization>true</InvariantGlobalization>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\ChromaDotNet.Embeddings\ChromaDotNet.Embeddings.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<InternalsVisibleTo Include="ChromaDotNet.Embeddings.Server.Tests" />
+	</ItemGroup>
+</Project>
