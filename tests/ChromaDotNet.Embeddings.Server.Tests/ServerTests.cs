@@ -44,8 +44,10 @@ public class ServerTests
 		{
 			var response = await _service.PostAsync("/", recorded.Request, recorded.Model);
 			Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK), recorded.Name);
-			var vectors = (await response.Content.ReadFromJsonAsync<JsonObject>())!["embeddings"]!.AsArray();
+			var json = (await response.Content.ReadFromJsonAsync<JsonObject>())!;
+			var vectors = json["embeddings"]!.AsArray();
 			Assert.That(vectors, Has.Count.EqualTo(recorded.Vectors.Length), recorded.Name);
+			Assert.That(json["num_tokens"]!.GetValue<long>(), Is.GreaterThanOrEqualTo(2 * vectors.Count), recorded.Name + ": num_tokens, as Chroma Cloud gives it");
 			for (var i = 0; i < vectors.Count; i++)
 			{
 				var local = vectors[i]!.AsArray().Select(v => v!.GetValue<float>()).ToArray();

@@ -45,7 +45,7 @@ app.MapPost("/", async (HttpRequest request, Models models, CancellationToken ca
 	return await Run(models.Qwen, async (generator, token) =>
 	{
 		var embeddings = await generator.Generate(texts, body.Instructions ?? string.Empty, null, token);
-		return Results.Json(new DenseResponse(embeddings.Select(e => e.Vector.ToArray()).ToArray()));
+		return Results.Json(new DenseResponse(embeddings.Select(e => e.Vector.ToArray()).ToArray(), embeddings.Usage?.InputTokenCount ?? 0));
 	}, cancellationToken);
 });
 
@@ -111,7 +111,8 @@ static IResult Error(int status, string message) => Results.Json(new ErrorRespon
 
 internal sealed record DenseRequest(string? Instructions, string[]? Texts);
 
-internal sealed record DenseResponse(float[][] Embeddings);
+// num_tokens: the tokens read, with the instructions and <|endoftext|>, as the response of Chroma Cloud has them.
+internal sealed record DenseResponse(float[][] Embeddings, [property: System.Text.Json.Serialization.JsonPropertyName("num_tokens")] long NumTokens);
 
 internal sealed record SparseRequest(string[]? Texts, string? Task, string? Target, [property: System.Text.Json.Serialization.JsonPropertyName("fetch_tokens")] JsonElement? FetchTokens);
 
