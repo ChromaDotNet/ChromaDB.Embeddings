@@ -1,8 +1,9 @@
 """The Python client of Chroma with CHROMA_EMBED_URL pointing at ChromaDotNet.Embeddings.Server: chroma-cloud-qwen and
 chroma-cloud-splade of chromadb compute through the service, and the vectors are those Chroma Cloud recorded on 25 October 2026.
-Qwen goes through a collection of a local Chroma (EphemeralClient): add, get with the embeddings, query.
+Qwen goes through a collection: of a local Chroma (EphemeralClient), or of the server at the URL given after the file, like a
+VecturaDB: add, get with the embeddings, query.
 It fails beyond the tolerances of the tests of ChromaDotNet.Embeddings: 1 - cosine 1e-5 for Qwen, values 0.06 apart for SPLADE.
-    CHROMA_EMBED_URL=http://127.0.0.1:8080 CHROMA_API_KEY=... python -I build/server-clients/python_client_check.py         tests/ChromaDotNet.Embeddings.Tests/TestData/hosted/cloud-v2.json"""
+    CHROMA_EMBED_URL=http://127.0.0.1:8080 CHROMA_API_KEY=... python -I build/server-clients/python_client_check.py         tests/ChromaDotNet.Embeddings.Tests/TestData/hosted/cloud-v2.json [http://127.0.0.1:8000]"""
 import json
 import sys
 
@@ -15,7 +16,17 @@ cloud = json.load(open(sys.argv[1], encoding="utf-8"))
 print(f"chromadb {chromadb.__version__}")
 
 qwen = ChromaCloudQwenEmbeddingFunction(model=ChromaCloudQwenEmbeddingModel.QWEN3_EMBEDDING_0p6B, task="nl_to_code")
-client = chromadb.EphemeralClient()
+if len(sys.argv) > 2:
+    from urllib.parse import urlparse
+    url = urlparse(sys.argv[2])
+    client = chromadb.HttpClient(host=url.hostname, port=url.port)
+    print(f"  server of the collection: {sys.argv[2]}, {client.get_version()}")
+    try:
+        client.delete_collection("embed-server-check")
+    except Exception:
+        pass
+else:
+    client = chromadb.EphemeralClient()
 collection = client.create_collection("embed-server-check", embedding_function=qwen, configuration={"hnsw": {"space": "cosine"}})
 documents = cloud["qwen-documents"]["request"]["texts"]
 collection.add(ids=[str(i) for i in range(len(documents))], documents=documents)
