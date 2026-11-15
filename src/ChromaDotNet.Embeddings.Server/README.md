@@ -62,7 +62,7 @@ A model computes one request at a time, and Qwen one text at a time. Qwen in flo
 
 - **Qwen refuses a text of more than 8192 tokens**, counting its instruction and `<|endoftext|>`, with 413 and a message that says which text. Chroma Cloud computes texts up to 32768 tokens. Beyond 8192 tokens the attention mask of the ONNX export needs more than 4 GiB.
 - SPLADE truncates a text at 512 tokens, as Chroma Cloud does.
-- The vectors are those of Chroma Cloud within the tolerances of ChromaDotNet.Embeddings: in our tests, against the vectors Chroma Cloud gave on 25 October 2026, 1 − cosine at most 3.8e-6 for Qwen in float16, and values up to 0.045 apart for SPLADE.
+- The vectors are those of Chroma Cloud within the tolerances of ChromaDotNet.Embeddings: in our tests, against the vectors Chroma Cloud gave on 25 October 2026, 1 − cosine at most 3.82e-6 for Qwen in float16, and values up to 0.045 apart for SPLADE.
 
 ## Notes on the clients
 
