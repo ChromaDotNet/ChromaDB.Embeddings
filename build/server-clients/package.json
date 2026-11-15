@@ -1,0 +1,10 @@
+{
+  "name": "server-client-checks",
+  "private": true,
+  "description": "The JavaScript clients of Chroma against ChromaDotNet.Embeddings.Server, for the CI.",
+  "type": "module",
+  "dependencies": {
+    "@chroma-core/chroma-cloud-qwen": "0.1.12",
+    "@chroma-core/chroma-cloud-splade": "0.1.12"
+  }
+}

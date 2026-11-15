@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Description>A service that computes chroma-cloud-qwen and chroma-cloud-splade as the embedding service of Chroma Cloud does, with the same requests and responses, for the clients of Chroma with CHROMA_EMBED_URL. It runs Qwen3-Embedding-0.6B and SPLADE with ChromaDotNet.Embeddings, on the CPU.</Description>
+		<PackageTags>$(PackageTags) qwen splade server dotnet-tool</PackageTags>
+		<!-- A version of its own: the service is new, the package of the models is at 1.0.0-preview.6. -->
+		<VersionPrefix>0.1.0</VersionPrefix>
+		<VersionSuffix>preview.1</VersionSuffix>
+		<IsPackable>true</IsPackable>
+		<PackAsTool>true</PackAsTool>
+		<ToolCommandName>chromadotnet-embed</ToolCommandName>
+		<InvariantGlobalization>true</InvariantGlobalization>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\ChromaDotNet.Embeddings\ChromaDotNet.Embeddings.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<InternalsVisibleTo Include="ChromaDotNet.Embeddings.Server.Tests" />
+	</ItemGroup>
+	<ItemGroup>
+		<!-- The page of the service on NuGet, in place of the README of the repository. -->
+		<None Remove="$(MSBuildThisFileDirectory)..\..\README.md" />
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+	<!-- ONNX Runtime brings its libraries for iOS and Android too, 100 MB of the tool: a service runs on Windows, Linux and macOS. -->
+	<Target Name="LeaveOutMobileLibraries" AfterTargets="ComputeResolvedFilesToPublishList">
+		<ItemGroup>
+			<ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="$([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').StartsWith('runtimes/ios/')) Or $([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').StartsWith('runtimes\ios\')) Or $([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').StartsWith('runtimes/android/')) Or $([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').StartsWith('runtimes\android\'))" />
+		</ItemGroup>
+	</Target>
+</Project>

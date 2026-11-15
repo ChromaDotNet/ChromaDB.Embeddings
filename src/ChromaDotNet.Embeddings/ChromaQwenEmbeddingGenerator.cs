@@ -195,7 +195,9 @@ public sealed class ChromaQwenEmbeddingGenerator : IEmbeddingGenerator<string, E
 
 	private static readonly ChromaQwenInstructions NoInstructions = new(string.Empty, string.Empty);
 
-	private Task<GeneratedEmbeddings<Embedding<float>>> Generate(IEnumerable<string> values, string instruction, EmbeddingGenerationOptions? options, CancellationToken cancellationToken)
+	// The embeddings with the instruction given, as the service computes those of a request with its "instructions": also for
+	// ChromaDotNet.Embeddings.Server.
+	internal Task<GeneratedEmbeddings<Embedding<float>>> Generate(IEnumerable<string> values, string instruction, EmbeddingGenerationOptions? options, CancellationToken cancellationToken)
 	{
 		Compat.NotNull(values, nameof(values));
 		if (options?.Dimensions is { } dimensions && dimensions != Dimensions)
