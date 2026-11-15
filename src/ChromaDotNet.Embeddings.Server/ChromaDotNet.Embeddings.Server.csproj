@@ -10,6 +10,7 @@
 		<PackAsTool>true</PackAsTool>
 		<ToolCommandName>chromadotnet-embed</ToolCommandName>
 		<InvariantGlobalization>true</InvariantGlobalization>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	</PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\ChromaDotNet.Embeddings\ChromaDotNet.Embeddings.csproj" />

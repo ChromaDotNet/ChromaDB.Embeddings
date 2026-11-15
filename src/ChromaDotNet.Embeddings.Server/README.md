@@ -18,10 +18,10 @@ It listens on `http://127.0.0.1:8080`. Each model is downloaded from Hugging Fac
 With Docker, for Linux x64 and arm64:
 
 ```
-docker run -p 127.0.0.1:8080:8080 -e Embeddings__ApiKey=<key> -v chroma-embeddings:/data ghcr.io/chromadotnet/embeddings-server
+docker run -p 127.0.0.1:8080:8080 -e Embeddings__ApiKey=<key> -v chroma-embeddings:/data ghcr.io/chromadotnet/embeddings-server:0.1.0-preview.1
 ```
 
-The models go into the volume at `/data`.
+The models go into the volume at `/data`. The image has a tag for each version, and no `latest`.
 
 ## Point the clients at it
 

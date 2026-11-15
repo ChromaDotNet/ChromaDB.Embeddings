@@ -6,13 +6,16 @@
 # with the files of the tests. A version tag, like
 # v1.0.0-preview.1, also publishes: the GitHub release with the packages and their build provenance, then the packages on NuGet, with
 # trusted publishing, in the environment nuget. The service, ChromaDotNet.Embeddings.Server, is tested on Linux x64 and arm64: through
-# HTTP, from its tool package with the clients of Python and JavaScript, and in its image.
+# HTTP, from its tool package with the clients of Python and JavaScript, and in its image; its image for both architectures is built on
+# every run. A tag of the service, like server-v0.1.0-preview.1, publishes it: the GitHub release with the package of the tool and its
+# build provenance, the image on ghcr.io/chromadotnet/embeddings-server with its provenance and its Sigstore signature, then the tool on
+# NuGet, in the environment nuget.
 name: CI
 
 on:
   push:
     branches: [main]
-    tags: ['v*']
+    tags: ['v*', 'server-v*']
   pull_request:
   workflow_dispatch:
 
@@ -21,7 +24,7 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/v') && !startsWith(github.ref, 'refs/tags/server-v') }}
 
 env:
   DOTNET_NOLOGO: 'true'
@@ -285,6 +288,44 @@ jobs:
             -d '{"instructions":"","texts":["def add(a, b): return a + b"]}' | python3 -c "import json, sys; v = json.load(sys.stdin)['embeddings'][0]; assert len(v) == 1024; print('1024 dimensions')"
           docker logs embeddings-server
 
+  # The package of the tool, and the image for linux/amd64 and linux/arm64 with the options of the release, on one runner: the build stage
+  # runs on the platform of the runner, and the final one has no RUN step, so no emulation is needed. A tag of the service pushes it.
+  server-image:
+    name: Image of the service for x64 and arm64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+      - name: The tag is server-v and the version of the service, a preview
+        run: |
+          version=$(dotnet msbuild src/ChromaDotNet.Embeddings.Server -getProperty:Version -nologo)
+          if [[ "$GITHUB_REF" == refs/tags/server-v* ]]; then
+            bash build/check-server-version.sh "$GITHUB_REF_NAME"
+          else
+            bash build/check-server-version.sh "server-v$version"
+            if bash build/check-server-version.sh "server-v0.0.0-preview.0"; then echo "a wrong tag passed" >&2; exit 1; fi
+          fi
+      - name: Pack the tool
+        run: dotnet pack src/ChromaDotNet.Embeddings.Server -c Release -o artifacts/server-package
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: server-package
+          path: artifacts/server-package
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: The image for both architectures
+        run: |
+          version=$(dotnet msbuild src/ChromaDotNet.Embeddings.Server -getProperty:Version -nologo)
+          description="A service that computes chroma-cloud-qwen and chroma-cloud-splade as the embedding service of Chroma Cloud does. Independent project. Not affiliated with, endorsed by or sponsored by Chroma Inc. CHROMA is a registered trademark of Chroma Inc., used here only to describe compatibility."
+          docker buildx build --platform linux/amd64,linux/arm64 -f src/ChromaDotNet.Embeddings.Server/Dockerfile \
+            --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.description=$description" --annotation "index:org.opencontainers.image.description=$description" \
+            --label "org.opencontainers.image.version=$version" --label "org.opencontainers.image.licenses=MIT" \
+            -t "ghcr.io/chromadotnet/embeddings-server:$version" --output type=oci,dest="$RUNNER_TEMP/image.tar" .
+          ls -l "$RUNNER_TEMP/image.tar"
+
   publish:
     name: Publish the preview
     needs: [pack, test, python-reference]
@@ -338,4 +379,88 @@ jobs:
           user: ${{ vars.NUGET_USER || 'Laurianti' }}
 
       - name: Publish to NuGet.org
+        run: dotnet nuget push 'packages/*.nupkg' --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+  publish-server:
+    name: Publish the service
+    needs: [server, server-image]
+    if: startsWith(github.ref, 'refs/tags/server-v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    environment: nuget
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+      packages: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: server-package
+          path: packages
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: 10.0.x
+      - name: The tag is server-v and the version of the service, a preview
+        run: bash build/check-server-version.sh "$TAG"
+
+      - name: Attest build provenance of the tool
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: packages/*.nupkg
+      - name: Collect the provenance
+        run: |
+          for file in packages/*.nupkg; do
+            gh attestation verify "$file" --repo "$GITHUB_REPOSITORY" --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/ci.yml" \
+              --source-ref "refs/tags/$TAG" --format json --jq '.[].attestation.bundle' >> bundles.jsonl
+          done
+          sort -u bundles.jsonl > "packages/provenance-$TAG.intoto.jsonl"
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: The image, on GHCR
+        id: image
+        run: |
+          version="${TAG#server-v}"
+          description="A service that computes chroma-cloud-qwen and chroma-cloud-splade as the embedding service of Chroma Cloud does. Independent project. Not affiliated with, endorsed by or sponsored by Chroma Inc. CHROMA is a registered trademark of Chroma Inc., used here only to describe compatibility."
+          docker buildx build --platform linux/amd64,linux/arm64 -f src/ChromaDotNet.Embeddings.Server/Dockerfile \
+            --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.description=$description" --annotation "index:org.opencontainers.image.description=$description" \
+            --label "org.opencontainers.image.version=$version" --label "org.opencontainers.image.licenses=MIT" \
+            -t "ghcr.io/chromadotnet/embeddings-server:$version" --push --metadata-file "$RUNNER_TEMP/metadata.json" .
+          echo "digest=$(jq -r '.["containerimage.digest"]' "$RUNNER_TEMP/metadata.json")" >> "$GITHUB_OUTPUT"
+      - name: Build provenance of the image
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ghcr.io/chromadotnet/embeddings-server
+          subject-digest: ${{ steps.image.outputs.digest }}
+          push-to-registry: true
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Sigstore signature of the image
+        env:
+          DIGEST: ${{ steps.image.outputs.digest }}
+        run: cosign sign --yes "ghcr.io/chromadotnet/embeddings-server@$DIGEST"
+
+      - name: GitHub release
+        run: |
+          version="${TAG#server-v}"
+          sed -e "s/VERSION/$version/g" -e "s/TAG/$TAG/g" build/server-release-notes.md > notes.md
+          gh release create "$TAG" packages/* --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease --latest=false \
+            --title "ChromaDotNet.Embeddings.Server $version" --notes-file notes.md
+
+      - name: NuGet login
+        id: login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1
+        with:
+          user: ${{ vars.NUGET_USER || 'Laurianti' }}
+      - name: Publish the tool to NuGet.org
         run: dotnet nuget push 'packages/*.nupkg' --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
